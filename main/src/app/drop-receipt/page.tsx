@@ -3,6 +3,10 @@
 import { useState } from "react";
 import { getReceiptByEmojiCode } from "@/services/receiptService";
 import { Receipt } from "@/lib/supabase";
+import { chains } from "@/config/chain";
+import ChainSelect from "@/components/ChainSelect";
+import TokenSelect from "@/components/TokenSelect";
+import { fetchTokensByChainId } from "@/services/tokenService";
 
 export default function DropReceiptPage() {
   const [emojis, setEmojis] = useState(["", "", "", ""]);
@@ -10,6 +14,27 @@ export default function DropReceiptPage() {
   const [showResult, setShowResult] = useState(false);
   const [receiptData, setReceiptData] = useState<Receipt | null>(null);
   const [error, setError] = useState<string | null>(null);
+  
+  // Payment form state
+  const [paymentForm, setPaymentForm] = useState({
+    chain: "",
+    token: "",
+    tokenAddress: "",
+    tokenSymbol: ""
+  });
+
+  // Helper function to convert stored amount back to human-readable format
+  const convertAmountToReadable = (amount: string, decimals: number): string => {
+    const amountValue = parseFloat(amount);
+    if (isNaN(amountValue)) return "0";
+    
+    // Divide by 10^decimals to get the original amount
+    const divisor = Math.pow(10, decimals);
+    const readableAmount = amountValue / divisor;
+    
+    // Format to appropriate decimal places
+    return readableAmount.toFixed(6).replace(/\.?0+$/, '');
+  };
 
   const handleEmojiChange = (index: number, value: string) => {
     const newEmojis = [...emojis];
@@ -104,11 +129,65 @@ export default function DropReceiptPage() {
     }
   };
 
+  const handlePaymentFormChange = (field: string, value: string) => {
+    setPaymentForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleTokenSelect = async (tokenAddress: string) => {
+    if (!paymentForm.chain) return;
+    
+    try {
+      const tokens = await fetchTokensByChainId(parseInt(paymentForm.chain));
+      const selectedToken = tokens.find(token => token.address === tokenAddress);
+      
+      if (selectedToken) {
+        setPaymentForm(prev => ({
+          ...prev,
+          token: selectedToken.symbol,
+          tokenAddress: selectedToken.address,
+          tokenSymbol: selectedToken.symbol
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching token details:', error);
+    }
+  };
+
+  const handleEmoSwap = () => {
+    if (!paymentForm.chain || !paymentForm.token) {
+      alert("Please select both chain and token");
+      return;
+    }
+    
+    // Here you would implement the actual swap logic
+    alert("EmoSwap functionality coming soon!");
+  };
+
   const handleReset = () => {
     setEmojis(["", "", "", ""]);
     setShowResult(false);
     setReceiptData(null);
     setError(null);
+    setPaymentForm({
+      chain: "",
+      token: "",
+      tokenAddress: "",
+      tokenSymbol: ""
+    });
+  };
+
+  const closeModal = () => {
+    setShowResult(false);
+    setReceiptData(null);
+    setPaymentForm({
+      chain: "",
+      token: "",
+      tokenAddress: "",
+      tokenSymbol: ""
+    });
   };
 
   return (
@@ -188,48 +267,91 @@ export default function DropReceiptPage() {
       {/* Result Modal */}
       {showResult && receiptData && (
         <div className="fixed inset-0 bg-white/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 p-8 max-w-md w-full">
-            {/* Header */}
-            <div className="text-center mb-6">
-              <h3 className="text-2xl font-bold text-black mb-2">Receipt Found!</h3>
-              <p className="text-gray-500">Here are your payment details</p>
+          <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 p-8 max-w-4xl w-full">
+            {/* Header with Close Button */}
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-black">Receipt Found!</h3>
+              <button
+                onClick={closeModal}
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+              >
+                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
 
-            {/* Receipt Details */}
-            <div className="space-y-4 mb-6">
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="text-sm text-gray-600 mb-1">Description</div>
-                <div className="font-medium text-black">{receiptData.description}</div>
+            {/* Receipt Details - Horizontal Layout */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              {/* Left Column - Receipt Info */}
+              <div className="space-y-4">
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="text-sm text-gray-600 mb-1">Description</div>
+                  <div className="font-medium text-black">{receiptData.description}</div>
+                </div>
+
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="text-sm text-gray-600 mb-1">Destination Chain</div>
+                  <div className="font-medium text-black">{receiptData.destination_chain}</div>
+                </div>
               </div>
 
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="text-sm text-gray-600 mb-1">Destination Chain</div>
-                <div className="font-medium text-black">{receiptData.destination_chain}</div>
-              </div>
+              {/* Right Column - Token & Amount */}
+              <div className="space-y-4">
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="text-sm text-gray-600 mb-1">Destination Token</div>
+                  <div className="font-medium text-black">{receiptData.destination_token}</div>
+                </div>
 
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="text-sm text-gray-600 mb-1">Destination Token</div>
-                <div className="font-medium text-black">{receiptData.destination_token}</div>
-              </div>
-
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="text-sm text-gray-600 mb-1">Destination Address</div>
-                <div className="font-medium text-black text-xs break-all">{receiptData.destination_address}</div>
-              </div>
-
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="text-sm text-gray-600 mb-1">Token Address</div>
-                <div className="font-medium text-black text-xs break-all">{receiptData.destination_token_address}</div>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="text-sm text-gray-600 mb-1">Amount</div>
+                  <div className="font-medium text-black">
+                    {convertAmountToReadable(receiptData.amount, receiptData.decimal)} {receiptData.destination_token}
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Close Button */}
-            <button
-              onClick={handleReset}
-              className="w-full bg-black text-white py-3 px-6 rounded-xl font-medium hover:bg-gray-800 transition-colors"
-            >
-              Close
-            </button>
+            {/* Payment Section */}
+            <div className="border-t border-gray-200 pt-6">
+              <h4 className="text-lg font-bold text-black mb-4">Select Payment Details</h4>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                {/* Chain Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-black mb-2">
+                    Select Chain to Pay
+                  </label>
+                  <ChainSelect
+                    value={paymentForm.chain}
+                    onChange={(value) => handlePaymentFormChange("chain", value)}
+                    placeholder="Select a chain"
+                  />
+                </div>
+
+                {/* Token Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-black mb-2">
+                    Select Token to Pay
+                  </label>
+                  <TokenSelect
+                    value={paymentForm.tokenAddress}
+                    onChange={handleTokenSelect}
+                    chainId={paymentForm.chain ? parseInt(paymentForm.chain) : undefined}
+                    placeholder="Select a token"
+                  />
+                </div>
+              </div>
+
+              {/* EmoSwap Button */}
+              <button
+                onClick={handleEmoSwap}
+                disabled={!paymentForm.chain || !paymentForm.token}
+                className="w-full bg-black text-white font-bold py-4 px-8 rounded-xl hover:bg-gray-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+              >
+                EmoSwap!
+              </button>
+            </div>
           </div>
         </div>
       )}

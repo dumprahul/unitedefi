@@ -122,9 +122,9 @@ export default function TokenSelect({ value, onChange, chainId, placeholder = "S
           {/* Token List */}
           {!isLoading && filteredTokens.length > 0 && (
             <div>
-              {filteredTokens.map((token) => (
+              {filteredTokens.map((token, index) => (
                 <button
-                  key={token.address}
+                  key={`${chainId}-${token.address}-${index}`}
                   type="button"
                   onClick={() => {
                     onChange(token.address);
