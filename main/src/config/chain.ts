@@ -15,7 +15,7 @@ export const chains: Chain[] = [
   {
     id: 1,
     name: "Ethereum Mainnet",
-    logo: "https://cryptologos.cc/logos/ethereum-eth-logo.png",
+    logo: "https://assets.coingecko.com/coins/images/279/small/ethereum.png",
     rpcUrl: "https://api.1inch.dev/web3/1",
     blockExplorer: "https://etherscan.io",
     nativeCurrency: {
@@ -27,7 +27,7 @@ export const chains: Chain[] = [
   {
     id: 42161,
     name: "Arbitrum",
-    logo: "https://cryptologos.cc/logos/arbitrum-new-logo.png",
+    logo: "https://assets.coingecko.com/coins/images/16547/small/photo_2023-03-29_21-47-00.jpg",
     rpcUrl: "https://api.1inch.dev/web3/42161",
     blockExplorer: "https://arbiscan.io",
     nativeCurrency: {
@@ -39,7 +39,7 @@ export const chains: Chain[] = [
   {
     id: 43114,
     name: "Avalanche",
-    logo: "https://cryptologos.cc/logos/avalanche-avax-logo.png",
+    logo: "https://cryptologos.cc/logos/avalanche-avax-logo.png?v=040",
     rpcUrl: "https://api.1inch.dev/web3/43114",
     blockExplorer: "https://snowtrace.io",
     nativeCurrency: {
@@ -51,7 +51,7 @@ export const chains: Chain[] = [
   {
     id: 56,
     name: "BNB Chain",
-    logo: "https://cryptologos.cc/logos/bnb-bnb-logo.png",
+    logo: "https://assets.coingecko.com/coins/images/825/small/bnb-icon2_2x.png",
     rpcUrl: "https://api.1inch.dev/web3/56",
     blockExplorer: "https://bscscan.com",
     nativeCurrency: {
@@ -63,7 +63,7 @@ export const chains: Chain[] = [
   {
     id: 100,
     name: "Gnosis",
-    logo: "https://cryptologos.cc/logos/gnosis-gno-logo.png",
+    logo: "https://assets.coingecko.com/coins/images/662/small/logo_square_simple_300px.png",
     rpcUrl: "https://api.1inch.dev/web3/100",
     blockExplorer: "https://gnosisscan.io",
     nativeCurrency: {
@@ -75,7 +75,7 @@ export const chains: Chain[] = [
   {
     id: 1399811150,
     name: "Solana",
-    logo: "https://cryptologos.cc/logos/solana-sol-logo.png",
+    logo: "https://assets.coingecko.com/coins/images/4128/small/solana.png",
     rpcUrl: "https://api.1inch.dev/web3/1399811150",
     blockExplorer: "https://explorer.solana.com",
     nativeCurrency: {
@@ -87,7 +87,7 @@ export const chains: Chain[] = [
   {
     id: 1001,
     name: "Sonic",
-    logo: "https://cryptologos.cc/logos/sonic-sonic-logo.png",
+    logo: "https://assets.coingecko.com/coins/images/279/small/ethereum.png",
     rpcUrl: "https://api.1inch.dev/web3/1001",
     blockExplorer: "https://explorer.sonic.network",
     nativeCurrency: {
@@ -99,7 +99,7 @@ export const chains: Chain[] = [
   {
     id: 10,
     name: "Optimism",
-    logo: "https://cryptologos.cc/logos/optimism-new-logo.png",
+    logo: "https://assets.coingecko.com/coins/images/25244/small/Optimism.png",
     rpcUrl: "https://api.1inch.dev/web3/10",
     blockExplorer: "https://optimistic.etherscan.io",
     nativeCurrency: {
@@ -111,7 +111,7 @@ export const chains: Chain[] = [
   {
     id: 137,
     name: "Polygon",
-    logo: "https://cryptologos.cc/logos/polygon-new-logo.png",
+    logo: "https://assets.coingecko.com/coins/images/4713/small/matic-token-icon.png",
     rpcUrl: "https://api.1inch.dev/web3/137",
     blockExplorer: "https://polygonscan.com",
     nativeCurrency: {
@@ -123,7 +123,7 @@ export const chains: Chain[] = [
   {
     id: 324,
     name: "zkSync Era",
-    logo: "https://cryptologos.cc/logos/zksync-era-logo.png",
+    logo: "https://assets.coingecko.com/coins/images/279/small/ethereum.png",
     rpcUrl: "https://api.1inch.dev/web3/324",
     blockExplorer: "https://explorer.zksync.io",
     nativeCurrency: {
@@ -135,7 +135,7 @@ export const chains: Chain[] = [
   {
     id: 8453,
     name: "Base",
-    logo: "https://cryptologos.cc/logos/base-logo.png",
+    logo: "https://assets.coingecko.com/coins/images/279/small/ethereum.png",
     rpcUrl: "https://api.1inch.dev/web3/8453",
     blockExplorer: "https://basescan.org",
     nativeCurrency: {
@@ -147,7 +147,7 @@ export const chains: Chain[] = [
   {
     id: 59144,
     name: "Linea",
-    logo: "https://cryptologos.cc/logos/linea-logo.png",
+    logo: "https://assets.coingecko.com/coins/images/279/small/ethereum.png",
     rpcUrl: "https://api.1inch.dev/web3/59144",
     blockExplorer: "https://lineascan.build",
     nativeCurrency: {
@@ -159,7 +159,7 @@ export const chains: Chain[] = [
   {
     id: 1002,
     name: "Unichain",
-    logo: "https://cryptologos.cc/logos/unichain-logo.png",
+    logo: "https://assets.coingecko.com/coins/images/279/small/ethereum.png",
     rpcUrl: "https://api.1inch.dev/web3/1002",
     blockExplorer: "https://explorer.unichain.world",
     nativeCurrency: {
