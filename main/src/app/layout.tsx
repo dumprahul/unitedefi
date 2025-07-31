@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { headers } from 'next/headers';
 import "./globals.css";
-import ContextProvider from '@/context'
+// import ContextProvider from '@/context'; // TODO: Fix wallet integration
 
 const sfProDisplayLight = localFont({
   src: "../../public/SF-Pro-Display-Light.otf",
@@ -34,9 +34,13 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body className={`${sfProDisplayLight.variable} ${sfProDisplayRegular.variable} ${sfProDisplayBold.variable} antialiased`}>
-      <ContextProvider cookies={cookies}>{children}</ContextProvider>
+      <body className={`${sfProDisplayLight.variable} ${sfProDisplayRegular.variable} ${sfProDisplayBold.variable} font-sans`}>
+        {children}
+        <Navbar />
       </body>
     </html>
   );
 }
+
+// Import Navbar component
+import Navbar from '@/components/Navbar';
