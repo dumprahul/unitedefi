@@ -8,6 +8,7 @@ export async function createReceipt(data: {
   destination_token_address: string
   destination_address: string
   amount: string
+  decimal: number
 }): Promise<Receipt | null> {
   try {
     const { data: receipt, error } = await supabase

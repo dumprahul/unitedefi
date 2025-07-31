@@ -6,7 +6,7 @@ import { chains } from "@/config/chain";
 import ChainSelect from "@/components/ChainSelect";
 import TokenSelect from "@/components/TokenSelect";
 import { createReceipt } from "@/services/receiptService";
-import { fetchTokensByChainId } from "@/services/tokenService";
+import { fetchTokensByChainId, Token } from "@/services/tokenService";
 
 // Import emoji data (you'll need to install emoji.json package)
 const emojis = [
@@ -26,7 +26,8 @@ export default function CreateReceiptPage() {
     token: "",
     tokenAddress: "",
     tokenSymbol: "",
-    amount: ""
+    amount: "",
+    tokenDecimals: 18 // Default to 18 decimals
   });
 
   const [showModal, setShowModal] = useState(false);
@@ -59,7 +60,8 @@ export default function CreateReceiptPage() {
           ...prev,
           token: selectedToken.symbol,
           tokenAddress: selectedToken.address,
-          tokenSymbol: selectedToken.symbol
+          tokenSymbol: selectedToken.symbol,
+          tokenDecimals: selectedToken.decimals
         }));
       }
     } catch (error) {
@@ -74,6 +76,20 @@ export default function CreateReceiptPage() {
       randomEmojis.push(emojis[randomIndex]);
     }
     return randomEmojis;
+  };
+
+  const calculateAmountWithDecimals = (amount: string, decimals: number): string => {
+    const amountValue = parseFloat(amount);
+    if (isNaN(amountValue) || amountValue <= 0) {
+      return "0";
+    }
+    
+    // Calculate: amount * (10^decimals)
+    const multiplier = Math.pow(10, decimals);
+    const calculatedAmount = amountValue * multiplier;
+    
+    // Convert to string to avoid scientific notation for large numbers
+    return calculatedAmount.toLocaleString('fullwide', { useGrouping: false });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -107,6 +123,9 @@ export default function CreateReceiptPage() {
       const selectedChain = chains.find(chain => chain.id.toString() === formData.chain);
       const chainName = selectedChain?.name || formData.chain;
       
+      // Calculate amount with decimals
+      const calculatedAmount = calculateAmountWithDecimals(formData.amount, formData.tokenDecimals);
+      
       // Save to Supabase
       const receiptData = {
         emoji_code: emojiCode,
@@ -115,7 +134,8 @@ export default function CreateReceiptPage() {
         destination_token: formData.tokenSymbol,
         destination_token_address: formData.tokenAddress,
         destination_address: connectedAddress!,
-        amount: formData.amount
+        amount: calculatedAmount,
+        decimal: formData.tokenDecimals
       };
 
       const savedReceipt = await createReceipt(receiptData);
@@ -145,7 +165,8 @@ export default function CreateReceiptPage() {
       token: "",
       tokenAddress: "",
       tokenSymbol: "",
-      amount: ""
+      amount: "",
+      tokenDecimals: 18
     });
   };
 
@@ -183,21 +204,6 @@ export default function CreateReceiptPage() {
               <div className="text-center mb-8">
                 <h2 className="font-bold text-2xl mb-2 text-black">Create Receipt</h2>
                 <p className="text-gray-700">Fill in the details to generate your payment receipt</p>
-              </div>
-
-              {/* Wallet Connection Status */}
-              <div className="mb-6 p-3 rounded-lg bg-gray-50 border">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Wallet Status:</span>
-                  <span className={`text-sm font-medium ${isConnected ? 'text-green-600' : 'text-red-600'}`}>
-                    {isConnected ? 'Connected' : 'Not Connected'}
-                  </span>
-                </div>
-                {isConnected && (
-                  <div className="mt-2 text-xs text-gray-500 truncate">
-                    {connectedAddress}
-                  </div>
-                )}
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -259,6 +265,11 @@ export default function CreateReceiptPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200"
                     required
                   />
+                  {formData.tokenSymbol && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Amount will be converted to {formData.tokenSymbol} with {formData.tokenDecimals} decimals
+                    </p>
+                  )}
                 </div>
 
                 {/* Submit Button */}

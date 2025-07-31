@@ -14,6 +14,7 @@ export interface Receipt {
   destination_token_address: string
   destination_address: string
   amount: string
+  decimal: number
   created_at: string
   updated_at: string
 } 
