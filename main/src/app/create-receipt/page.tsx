@@ -2,6 +2,15 @@
 
 import { useState } from "react";
 
+// Import emoji data (you'll need to install emoji.json package)
+const emojis = [
+  "🎨", "🚀", "💎", "🌟", "🔥", "💫", "⭐", "✨", "🎯", "🎪", 
+  "🎭", "🎨", "🎪", "🎯", "🎲", "🎮", "🎸", "🎹", "🎺", "🎻",
+  "🎤", "🎧", "🎵", "🎶", "🎼", "🎹", "🎸", "🎺", "🎻", "🎤",
+  "🎧", "🎵", "🎶", "🎼", "🎹", "🎸", "🎺", "🎻", "🎤", "🎧",
+  "🎵", "🎶", "🎼", "🎹", "🎸", "🎺", "🎻", "🎤", "🎧", "🎵"
+];
+
 export default function CreateReceiptPage() {
   const [formData, setFormData] = useState({
     preferredChain: "",
@@ -10,6 +19,11 @@ export default function CreateReceiptPage() {
     description: ""
   });
 
+  const [showModal, setShowModal] = useState(false);
+  const [generatedEmojis, setGeneratedEmojis] = useState<string[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [copied, setCopied] = useState(false);
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -17,10 +31,45 @@ export default function CreateReceiptPage() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const generateRandomEmojis = () => {
+    const randomEmojis = [];
+    for (let i = 0; i < 4; i++) {
+      const randomIndex = Math.floor(Math.random() * emojis.length);
+      randomEmojis.push(emojis[randomIndex]);
+    }
+    return randomEmojis;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form submitted:", formData);
-    alert("Receipt creation feature coming soon!");
+    setIsGenerating(true);
+    
+    // Simulate processing time
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Generate 4 random emojis
+    const emojis = generateRandomEmojis();
+    setGeneratedEmojis(emojis);
+    
+    setIsGenerating(false);
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setGeneratedEmojis([]);
+    setCopied(false);
+  };
+
+  const copyEmojis = async () => {
+    const emojiString = generatedEmojis.join('');
+    try {
+      await navigator.clipboard.writeText(emojiString);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy emojis');
+    }
   };
 
   return (
@@ -120,9 +169,10 @@ export default function CreateReceiptPage() {
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-black text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-800 transition-all duration-200"
+              disabled={isGenerating}
+              className="w-full bg-black text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create Receipt
+              {isGenerating ? "🔄 Generating..." : "Create Receipt"}
             </button>
           </form>
 
@@ -139,6 +189,58 @@ export default function CreateReceiptPage() {
           </div>
         </div>
       </div>
+
+      {/* Success Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-white/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 p-8 max-w-sm w-full text-center">
+            {/* Success Icon */}
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Success Message */}
+            <div className="text-gray-500 text-lg mb-2">Great!</div>
+            <h3 className="text-2xl font-bold text-black mb-2">Receipt Generated</h3>
+            <p className="text-gray-500 mb-6">Here are your unique emojis</p>
+
+            {/* Generated Emojis */}
+            <div className="flex justify-center space-x-3 mb-6">
+              {generatedEmojis.map((emoji, index) => (
+                <div
+                  key={index}
+                  className="w-16 h-16 bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-gray-100 rounded-2xl flex items-center justify-center text-3xl shadow-sm"
+                >
+                  {emoji}
+                </div>
+              ))}
+            </div>
+
+            {/* Copy Button */}
+            <button
+              onClick={copyEmojis}
+              className="w-full mb-4 bg-gray-100 text-gray-700 py-3 px-6 rounded-xl font-medium hover:bg-gray-200 transition-colors flex items-center justify-center space-x-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              <span>{copied ? "Copied!" : "Copy Emojis"}</span>
+            </button>
+
+            {/* Close Button */}
+            <button
+              onClick={closeModal}
+              className="w-full bg-black text-white py-3 px-6 rounded-xl font-medium hover:bg-gray-800 transition-colors"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 
