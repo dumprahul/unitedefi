@@ -13,6 +13,7 @@ export interface Receipt {
   destination_token: string
   destination_token_address: string
   destination_address: string
+  amount: string
   created_at: string
   updated_at: string
 } 

@@ -25,7 +25,8 @@ export default function CreateReceiptPage() {
     chain: "",
     token: "",
     tokenAddress: "",
-    tokenSymbol: ""
+    tokenSymbol: "",
+    amount: ""
   });
 
   const [showModal, setShowModal] = useState(false);
@@ -83,8 +84,15 @@ export default function CreateReceiptPage() {
       return;
     }
 
-    if (!formData.description || !formData.chain || !formData.token || !formData.tokenAddress) {
+    if (!formData.description || !formData.chain || !formData.token || !formData.tokenAddress || !formData.amount) {
       alert("Please fill in all fields!");
+      return;
+    }
+
+    // Validate amount is a positive number
+    const amountValue = parseFloat(formData.amount);
+    if (isNaN(amountValue) || amountValue <= 0) {
+      alert("Please enter a valid amount (positive number)!");
       return;
     }
 
@@ -106,7 +114,8 @@ export default function CreateReceiptPage() {
         destination_chain: chainName,
         destination_token: formData.tokenSymbol,
         destination_token_address: formData.tokenAddress,
-        destination_address: connectedAddress!
+        destination_address: connectedAddress!,
+        amount: formData.amount
       };
 
       const savedReceipt = await createReceipt(receiptData);
@@ -135,7 +144,8 @@ export default function CreateReceiptPage() {
       chain: "",
       token: "",
       tokenAddress: "",
-      tokenSymbol: ""
+      tokenSymbol: "",
+      amount: ""
     });
   };
 
@@ -232,6 +242,23 @@ export default function CreateReceiptPage() {
                       placeholder="Select a token"
                     />
                   </div>
+                </div>
+
+                {/* Amount */}
+                <div>
+                  <label className="block text-sm font-medium text-black mb-2">
+                    Amount
+                  </label>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    min="0"
+                    value={formData.amount}
+                    onChange={(e) => handleInputChange("amount", e.target.value)}
+                    placeholder="0.0"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200"
+                    required
+                  />
                 </div>
 
                 {/* Submit Button */}

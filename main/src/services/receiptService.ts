@@ -7,6 +7,7 @@ export async function createReceipt(data: {
   destination_token: string
   destination_token_address: string
   destination_address: string
+  amount: string
 }): Promise<Receipt | null> {
   try {
     const { data: receipt, error } = await supabase
