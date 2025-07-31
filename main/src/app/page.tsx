@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+
 export default function Home() {
   const [isConnecting, setIsConnecting] = useState(false);
 
@@ -23,6 +24,7 @@ export default function Home() {
             Revolutionary cross-chain payments where emojis become currency. 
             Connect your wallet and start transacting across multiple blockchains.
           </p>
+          <appkit-button />
         </div>
         
         <button
