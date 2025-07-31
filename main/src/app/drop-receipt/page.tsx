@@ -11,9 +11,9 @@ import { fetchTokensByChainId } from "@/services/tokenService";
 export default function DropReceiptPage() {
   const [emojis, setEmojis] = useState(["", "", "", ""]);
   const [isLoading, setIsLoading] = useState(false);
-  const [showResult, setShowResult] = useState(false);
   const [receiptData, setReceiptData] = useState<Receipt | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isReceiptFound, setIsReceiptFound] = useState(false);
   
   // Payment form state
   const [paymentForm, setPaymentForm] = useState({
@@ -111,19 +111,22 @@ export default function DropReceiptPage() {
 
     setIsLoading(true);
     setError(null);
+    setIsReceiptFound(false);
     
     try {
       const receipt = await getReceiptByEmojiCode(emojiCode);
       
       if (receipt) {
         setReceiptData(receipt);
-        setShowResult(true);
+        setIsReceiptFound(true);
       } else {
         setError("No receipt found with these emojis. Please check and try again.");
+        setIsReceiptFound(false);
       }
     } catch (error) {
       console.error('Error fetching receipt:', error);
       setError("Failed to fetch receipt. Please try again.");
+      setIsReceiptFound(false);
     } finally {
       setIsLoading(false);
     }
@@ -168,20 +171,9 @@ export default function DropReceiptPage() {
 
   const handleReset = () => {
     setEmojis(["", "", "", ""]);
-    setShowResult(false);
     setReceiptData(null);
     setError(null);
-    setPaymentForm({
-      chain: "",
-      token: "",
-      tokenAddress: "",
-      tokenSymbol: ""
-    });
-  };
-
-  const closeModal = () => {
-    setShowResult(false);
-    setReceiptData(null);
+    setIsReceiptFound(false);
     setPaymentForm({
       chain: "",
       token: "",
@@ -210,151 +202,155 @@ export default function DropReceiptPage() {
           {/* Right Section - Emoji Input */}
           <div className="flex items-center justify-center">
             <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8 w-full max-w-lg">
-              <div className="text-center mb-8">
-                <h2 className="font-bold text-2xl mb-2 text-black">Drop Receipt</h2>
-                <p className="text-gray-700">Enter the 4 emojis to retrieve your receipt</p>
-              </div>
+              {!isReceiptFound ? (
+                <>
+                  <div className="text-center mb-8">
+                    <h2 className="font-bold text-2xl mb-2 text-black">Drop Receipt</h2>
+                    <p className="text-gray-700">Enter the 4 emojis to retrieve your receipt</p>
+                  </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Emoji Input Boxes */}
-                <div className="grid grid-cols-4 gap-4">
-                  {emojis.map((emoji, index) => (
-                    <div key={index}>
-                      <input
-                        type="text"
-                        value={emoji}
-                        onChange={(e) => handleEmojiChange(index, e.target.value)}
-                        onPaste={(e) => handleInputPaste(e, index)}
-                        className="w-full h-16 text-center text-2xl border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 font-light"
-                        style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
-                        maxLength={2}
-                        placeholder=""
-                      />
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Emoji Input Boxes */}
+                    <div className="grid grid-cols-4 gap-4">
+                      {emojis.map((emoji, index) => (
+                        <div key={index}>
+                          <input
+                            type="text"
+                            value={emoji}
+                            onChange={(e) => handleEmojiChange(index, e.target.value)}
+                            onPaste={(e) => handleInputPaste(e, index)}
+                            className="w-full h-16 text-center text-2xl border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 font-light"
+                            style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
+                            maxLength={2}
+                            placeholder=""
+                          />
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
 
-                {/* Paste Button */}
-                <button
-                  type="button"
-                  onClick={handlePaste}
-                  className="w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-200 transition-colors"
-                >
-                  Paste Emojis
-                </button>
+                    {/* Paste Button */}
+                    <button
+                      type="button"
+                      onClick={handlePaste}
+                      className="w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                    >
+                      Paste Emojis
+                    </button>
 
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={isLoading || emojis.filter(emoji => emoji.trim() !== "").length !== 4}
-                  className="w-full bg-black text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? "🔄 Searching..." : "Retrieve Receipt"}
-                </button>
-              </form>
+                    {/* Submit Button */}
+                    <button
+                      type="submit"
+                      disabled={isLoading || emojis.filter(emoji => emoji.trim() !== "").length !== 4}
+                      className="w-full bg-black text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isLoading ? "🔄 Searching..." : "Retrieve Receipt"}
+                    </button>
+                  </form>
 
-              {/* Error Message */}
-              {error && (
-                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-red-600 text-sm">{error}</p>
-                </div>
+                  {/* Error Message */}
+                  {error && (
+                    <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-red-600 text-sm">{error}</p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                /* Receipt Data - Inline Display */
+                receiptData && (
+                  <div>
+                    <div className="text-center mb-6">
+                      <h3 className="text-xl font-bold text-black mb-2">Receipt Found!</h3>
+                      <p className="text-gray-600">Here are your payment details</p>
+                    </div>
+
+                    {/* Receipt Details - Horizontal Layout */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                      {/* Left Column - Receipt Info */}
+                      <div className="space-y-3">
+                        <div className="p-3 bg-gray-50 rounded-lg border">
+                          <div className="text-sm text-gray-600 mb-1">Description</div>
+                          <div className="font-medium text-black">{receiptData.description}</div>
+                        </div>
+
+                        <div className="p-3 bg-gray-50 rounded-lg border">
+                          <div className="text-sm text-gray-600 mb-1">Destination Chain</div>
+                          <div className="font-medium text-black">{receiptData.destination_chain}</div>
+                        </div>
+                      </div>
+
+                      {/* Right Column - Token & Amount */}
+                      <div className="space-y-3">
+                        <div className="p-3 bg-gray-50 rounded-lg border">
+                          <div className="text-sm text-gray-600 mb-1">Destination Token</div>
+                          <div className="font-medium text-black">{receiptData.destination_token}</div>
+                        </div>
+
+                        <div className="p-3 bg-gray-50 rounded-lg border">
+                          <div className="text-sm text-gray-600 mb-1">Amount</div>
+                          <div className="font-medium text-black">
+                            {convertAmountToReadable(receiptData.amount, receiptData.decimal)} {receiptData.destination_token}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Payment Section */}
+                    <div className="border-t border-gray-200 pt-4">
+                      <h4 className="text-lg font-bold text-black mb-4">Select Payment Details</h4>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        {/* Chain Selection */}
+                        <div>
+                          <label className="block text-sm font-medium text-black mb-2">
+                            Select Chain to Pay
+                          </label>
+                          <ChainSelect
+                            value={paymentForm.chain}
+                            onChange={(value) => handlePaymentFormChange("chain", value)}
+                            placeholder="Select a chain"
+                          />
+                        </div>
+
+                        {/* Token Selection */}
+                        <div>
+                          <label className="block text-sm font-medium text-black mb-2">
+                            Select Token to Pay
+                          </label>
+                          <TokenSelect
+                            value={paymentForm.tokenAddress}
+                            onChange={handleTokenSelect}
+                            chainId={paymentForm.chain ? parseInt(paymentForm.chain) : undefined}
+                            placeholder="Select a token"
+                          />
+                        </div>
+                      </div>
+
+                      {/* EmoSwap Button */}
+                      <button
+                        onClick={handleEmoSwap}
+                        disabled={!paymentForm.chain || !paymentForm.token}
+                        className="w-full bg-black text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        EmoSwap!
+                      </button>
+                    </div>
+
+                    {/* Reset Button */}
+                    <div className="mt-4 text-center">
+                      <button
+                        onClick={handleReset}
+                        className="text-gray-500 hover:text-gray-700 text-sm underline"
+                      >
+                        Search Another Receipt
+                      </button>
+                    </div>
+                  </div>
+                )
               )}
             </div>
           </div>
         </div>
       </div>
-
-      {/* Result Modal */}
-      {showResult && receiptData && (
-        <div className="fixed inset-0 bg-white/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 p-8 max-w-4xl w-full">
-            {/* Header with Close Button */}
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-bold text-black">Receipt Found!</h3>
-              <button
-                onClick={closeModal}
-                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-              >
-                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Receipt Details - Horizontal Layout */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              {/* Left Column - Receipt Info */}
-              <div className="space-y-4">
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="text-sm text-gray-600 mb-1">Description</div>
-                  <div className="font-medium text-black">{receiptData.description}</div>
-                </div>
-
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="text-sm text-gray-600 mb-1">Destination Chain</div>
-                  <div className="font-medium text-black">{receiptData.destination_chain}</div>
-                </div>
-              </div>
-
-              {/* Right Column - Token & Amount */}
-              <div className="space-y-4">
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="text-sm text-gray-600 mb-1">Destination Token</div>
-                  <div className="font-medium text-black">{receiptData.destination_token}</div>
-                </div>
-
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="text-sm text-gray-600 mb-1">Amount</div>
-                  <div className="font-medium text-black">
-                    {convertAmountToReadable(receiptData.amount, receiptData.decimal)} {receiptData.destination_token}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Payment Section */}
-            <div className="border-t border-gray-200 pt-6">
-              <h4 className="text-lg font-bold text-black mb-4">Select Payment Details</h4>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                {/* Chain Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-black mb-2">
-                    Select Chain to Pay
-                  </label>
-                  <ChainSelect
-                    value={paymentForm.chain}
-                    onChange={(value) => handlePaymentFormChange("chain", value)}
-                    placeholder="Select a chain"
-                  />
-                </div>
-
-                {/* Token Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-black mb-2">
-                    Select Token to Pay
-                  </label>
-                  <TokenSelect
-                    value={paymentForm.tokenAddress}
-                    onChange={handleTokenSelect}
-                    chainId={paymentForm.chain ? parseInt(paymentForm.chain) : undefined}
-                    placeholder="Select a token"
-                  />
-                </div>
-              </div>
-
-              {/* EmoSwap Button */}
-              <button
-                onClick={handleEmoSwap}
-                disabled={!paymentForm.chain || !paymentForm.token}
-                className="w-full bg-black text-white font-bold py-4 px-8 rounded-xl hover:bg-gray-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
-              >
-                EmoSwap!
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 } 
