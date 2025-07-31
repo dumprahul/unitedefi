@@ -157,17 +157,8 @@ export default function CreateReceiptPage() {
 
                 {/* Wallet Address */}
                 <div>
-                  <label className="block text-sm font-medium text-black mb-2">
-                    Wallet Address
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.walletAddress}
-                    onChange={(e) => handleInputChange("walletAddress", e.target.value)}
-                    placeholder="0x..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200"
-                    required
-                  />
+                  
+          
                 </div>
 
                 {/* Submit Button */}
