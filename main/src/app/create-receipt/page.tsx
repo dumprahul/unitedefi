@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { chains } from "@/config/chain";
+import ChainSelect from "@/components/ChainSelect";
+import TokenSelect from "@/components/TokenSelect";
 
 // Import emoji data (you'll need to install emoji.json package)
 const emojis = [
@@ -120,18 +123,11 @@ export default function CreateReceiptPage() {
                     <label className="block text-sm font-medium text-black mb-2">
                       Chain
                     </label>
-                    <select
+                    <ChainSelect
                       value={formData.chain}
-                      onChange={(e) => handleInputChange("chain", e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200"
-                      required
-                    >
-                      <option value="">Select a chain</option>
-                      <option value="ethereum">Ethereum</option>
-                      <option value="polygon">Polygon</option>
-                      <option value="arbitrum">Arbitrum</option>
-                      <option value="mantle">Mantle</option>
-                    </select>
+                      onChange={(value) => handleInputChange("chain", value)}
+                      placeholder="Select a chain"
+                    />
                   </div>
 
                   {/* Token */}
@@ -139,26 +135,28 @@ export default function CreateReceiptPage() {
                     <label className="block text-sm font-medium text-black mb-2">
                       Token
                     </label>
-                    <select
+                    <TokenSelect
                       value={formData.token}
-                      onChange={(e) => handleInputChange("token", e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200"
-                      required
-                    >
-                      <option value="">Select a token</option>
-                      <option value="eth">ETH</option>
-                      <option value="usdc">USDC</option>
-                      <option value="usdt">USDT</option>
-                      <option value="weth">WETH</option>
-                      <option value="matic">MATIC</option>
-                    </select>
+                      onChange={(value) => handleInputChange("token", value)}
+                      chainId={formData.chain ? parseInt(formData.chain) : undefined}
+                      placeholder="Select a token"
+                    />
                   </div>
                 </div>
 
                 {/* Wallet Address */}
                 <div>
-                  
-          
+                  <label className="block text-sm font-medium text-black mb-2">
+                    Wallet Address
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.walletAddress}
+                    onChange={(e) => handleInputChange("walletAddress", e.target.value)}
+                    placeholder="0x..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200"
+                    required
+                  />
                 </div>
 
                 {/* Submit Button */}
