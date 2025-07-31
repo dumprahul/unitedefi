@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ConnectButton } from "@/components/ConnectButton";
 
 
 export default function Home() {
@@ -24,7 +25,7 @@ export default function Home() {
             Revolutionary cross-chain payments where emojis become currency. 
             Connect your wallet and start transacting across multiple blockchains.
           </p>
-          <appkit-button />
+          <ConnectButton />
         </div>
         
         <button
