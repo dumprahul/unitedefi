@@ -25,7 +25,7 @@ export default function Home() {
             Revolutionary cross-chain payments where emojis become currency. 
             Connect your wallet and start transacting across multiple blockchains.
           </p>
-          <ConnectButton />
+          
         </div>
         
         <button

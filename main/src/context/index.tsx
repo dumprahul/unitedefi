@@ -31,6 +31,13 @@ const modal = createAppKit({
   metadata: metadata,
   features: {
     analytics: true // Optional - defaults to your Cloud configuration
+  },
+  themeVariables: {
+    "--w3m-accent": "#000000",               // primary accent
+    // "--w3m-color-mix": "#00BB7F",           // color blending
+    // "--w3m-color-mix-strength": 40,
+    "--w3m-font-family": "sfProDisplayBold",  // use Bungee font
+    "--w3m-border-radius-master": "8px",
   }
 })
 
