@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAccount } from "wagmi";
 import { chains } from "@/config/chain";
 import ChainSelect from "@/components/ChainSelect";
 import TokenSelect from "@/components/TokenSelect";
+import { createReceipt } from "@/services/receiptService";
+import { fetchTokensByChainId } from "@/services/tokenService";
 
 // Import emoji data (you'll need to install emoji.json package)
 const emojis = [
@@ -15,23 +18,52 @@ const emojis = [
 ];
 
 export default function CreateReceiptPage() {
+  const { address: connectedAddress } = useAccount();
+  
   const [formData, setFormData] = useState({
     description: "",
     chain: "",
     token: "",
-    walletAddress: ""
+    tokenAddress: "",
+    tokenSymbol: ""
   });
 
   const [showModal, setShowModal] = useState(false);
   const [generatedEmojis, setGeneratedEmojis] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+
+  // Check if wallet is connected
+  useEffect(() => {
+    setIsConnected(!!connectedAddress);
+  }, [connectedAddress]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleTokenSelect = async (tokenAddress: string) => {
+    if (!formData.chain) return;
+    
+    try {
+      const tokens = await fetchTokensByChainId(parseInt(formData.chain));
+      const selectedToken = tokens.find(token => token.address === tokenAddress);
+      
+      if (selectedToken) {
+        setFormData(prev => ({
+          ...prev,
+          token: selectedToken.symbol,
+          tokenAddress: selectedToken.address,
+          tokenSymbol: selectedToken.symbol
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching token details:', error);
+    }
   };
 
   const generateRandomEmojis = () => {
@@ -45,23 +77,66 @@ export default function CreateReceiptPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!isConnected) {
+      alert("Please connect your wallet first!");
+      return;
+    }
+
+    if (!formData.description || !formData.chain || !formData.token || !formData.tokenAddress) {
+      alert("Please fill in all fields!");
+      return;
+    }
+
     setIsGenerating(true);
     
-    // Simulate processing time
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Generate 4 random emojis
-    const emojis = generateRandomEmojis();
-    setGeneratedEmojis(emojis);
-    
-    setIsGenerating(false);
-    setShowModal(true);
+    try {
+      // Generate 4 random emojis
+      const emojiArray = generateRandomEmojis();
+      const emojiCode = emojiArray.join('');
+      
+      // Get selected chain name
+      const selectedChain = chains.find(chain => chain.id.toString() === formData.chain);
+      const chainName = selectedChain?.name || formData.chain;
+      
+      // Save to Supabase
+      const receiptData = {
+        emoji_code: emojiCode,
+        description: formData.description,
+        destination_chain: chainName,
+        destination_token: formData.tokenSymbol,
+        destination_token_address: formData.tokenAddress,
+        destination_address: connectedAddress!
+      };
+
+      const savedReceipt = await createReceipt(receiptData);
+      
+      if (savedReceipt) {
+        setGeneratedEmojis(emojiArray);
+        setShowModal(true);
+      } else {
+        alert("Failed to create receipt. Please try again.");
+      }
+    } catch (error) {
+      console.error('Error creating receipt:', error);
+      alert("Failed to create receipt. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const closeModal = () => {
     setShowModal(false);
     setGeneratedEmojis([]);
     setCopied(false);
+    // Reset form
+    setFormData({
+      description: "",
+      chain: "",
+      token: "",
+      tokenAddress: "",
+      tokenSymbol: ""
+    });
   };
 
   const copyEmojis = async () => {
@@ -100,6 +175,21 @@ export default function CreateReceiptPage() {
                 <p className="text-gray-700">Fill in the details to generate your payment receipt</p>
               </div>
 
+              {/* Wallet Connection Status */}
+              <div className="mb-6 p-3 rounded-lg bg-gray-50 border">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Wallet Status:</span>
+                  <span className={`text-sm font-medium ${isConnected ? 'text-green-600' : 'text-red-600'}`}>
+                    {isConnected ? 'Connected' : 'Not Connected'}
+                  </span>
+                </div>
+                {isConnected && (
+                  <div className="mt-2 text-xs text-gray-500 truncate">
+                    {connectedAddress}
+                  </div>
+                )}
+              </div>
+
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Description */}
                 <div>
@@ -136,33 +226,18 @@ export default function CreateReceiptPage() {
                       Token
                     </label>
                     <TokenSelect
-                      value={formData.token}
-                      onChange={(value) => handleInputChange("token", value)}
+                      value={formData.tokenAddress}
+                      onChange={handleTokenSelect}
                       chainId={formData.chain ? parseInt(formData.chain) : undefined}
                       placeholder="Select a token"
                     />
                   </div>
                 </div>
 
-                {/* Wallet Address */}
-                <div>
-                  <label className="block text-sm font-medium text-black mb-2">
-                    Wallet Address
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.walletAddress}
-                    onChange={(e) => handleInputChange("walletAddress", e.target.value)}
-                    placeholder="0x..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200"
-                    required
-                  />
-                </div>
-
                 {/* Submit Button */}
                 <button
                   type="submit"
-                  disabled={isGenerating}
+                  disabled={isGenerating || !isConnected}
                   className="w-full bg-black text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isGenerating ? "🔄 Generating..." : "Create Receipt"}
