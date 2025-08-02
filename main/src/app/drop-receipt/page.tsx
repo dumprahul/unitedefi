@@ -7,6 +7,7 @@ import { chains } from "@/config/chain";
 import ChainSelect from "@/components/ChainSelect";
 import TokenSelect from "@/components/TokenSelect";
 import { fetchTokensByChainId } from "@/services/tokenService";
+import { calculateSourceTokenAmount, PriceCalculation } from "@/services/spotPriceService";
 
 export default function DropReceiptPage() {
   const [emojis, setEmojis] = useState(["", "", "", ""]);
@@ -14,6 +15,8 @@ export default function DropReceiptPage() {
   const [receiptData, setReceiptData] = useState<Receipt | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isReceiptFound, setIsReceiptFound] = useState(false);
+  const [priceCalculation, setPriceCalculation] = useState<PriceCalculation | null>(null);
+  const [isCalculatingPrice, setIsCalculatingPrice] = useState(false);
   
   // Payment form state
   const [paymentForm, setPaymentForm] = useState({
@@ -190,7 +193,7 @@ export default function DropReceiptPage() {
     }
   };
 
-  const handleEmoSwap = () => {
+  const handleEmoSwap = async () => {
     if (!paymentForm.chain || !paymentForm.token) {
       alert("Please select both chain and token");
       return;
@@ -254,8 +257,63 @@ export default function DropReceiptPage() {
     console.log("🎨 Emoji Code:", emojis.join(''));
     console.log("=== END PARAMETERS ===");
 
-    // Here you would implement the actual swap logic
-    alert("EmoSwap functionality coming soon!");
+    // Calculate spot prices and required source token amount
+    try {
+      setIsCalculatingPrice(true);
+      setPriceCalculation(null);
+
+      const destinationAmount = parseFloat(convertAmountToReadable(receiptData.amount, receiptData.decimal));
+      
+      // Log the destination token details before calculation
+      console.log("🎯 Destination Token Details:", {
+        chainId: destinationParams.chain.id,
+        tokenAddress: destinationParams.token.address,
+        tokenSymbol: destinationParams.token.symbol,
+        amount: destinationAmount,
+        decimals: receiptData.decimal
+      });
+
+      // Log the source token details before calculation
+      console.log("🔗 Source Token Details:", {
+        chainId: sourceParams.chain.id,
+        tokenAddress: sourceParams.token.address,
+        tokenSymbol: sourceParams.token.symbol
+      });
+      
+      const calculation = await calculateSourceTokenAmount(
+        destinationParams.chain.id,
+        destinationParams.token.address,
+        destinationAmount,
+        sourceParams.chain.id,
+        sourceParams.token.address
+      );
+
+      // Log the raw spot price values from API responses
+      console.log("💰 Raw Spot Price Values:", {
+        destinationTokenValue: calculation.destinationTokenPrice,
+        sourceTokenValue: calculation.sourceTokenPrice,
+        destinationChainId: destinationParams.chain.id,
+        sourceChainId: sourceParams.chain.id,
+        destinationTokenAddress: destinationParams.token.address,
+        sourceTokenAddress: sourceParams.token.address
+      });
+
+      setPriceCalculation(calculation);
+
+      console.log("💱 Price Calculation Result:", {
+        destinationToken: `${destinationAmount} ${destinationParams.token.symbol}`,
+        destinationTokenPrice: `$${calculation.destinationTokenPrice}`,
+        sourceToken: `${calculation.sourceTokenAmount.toFixed(6)} ${sourceParams.token.symbol}`,
+        sourceTokenPrice: `$${calculation.sourceTokenPrice}`,
+        conversionRate: calculation.conversionRate.toFixed(6)
+      });
+
+    } catch (error) {
+      console.error("❌ Error calculating prices:", error);
+      alert("Failed to calculate token prices. Please try again.");
+    } finally {
+      setIsCalculatingPrice(false);
+    }
   };
 
   // Helper function to get chain ID by name
@@ -269,6 +327,7 @@ export default function DropReceiptPage() {
     setReceiptData(null);
     setError(null);
     setIsReceiptFound(false);
+    setPriceCalculation(null);
     setPaymentForm({
       chain: "",
       token: "",
@@ -423,11 +482,58 @@ export default function DropReceiptPage() {
                       {/* EmoSwap Button */}
                       <button
                         onClick={handleEmoSwap}
-                        disabled={!paymentForm.chain || !paymentForm.token}
+                        disabled={!paymentForm.chain || !paymentForm.token || isCalculatingPrice}
                         className="w-full bg-black text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        EmoSwap!
+                        {isCalculatingPrice ? "🔄 Calculating..." : "EmoSwap!"}
                       </button>
+
+                      {/* Price Calculation Results */}
+                      {priceCalculation && (
+                        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                          <h5 className="font-bold text-black mb-3">💱 Price Calculation</h5>
+                          
+                          <div className="space-y-3">
+                            {/* Destination Token Info */}
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600">Destination Token:</span>
+                              <span className="font-medium text-black">
+                                {convertAmountToReadable(receiptData.amount, receiptData.decimal)} {receiptData.destination_token}
+                              </span>
+                            </div>
+                            
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600">Destination Token Price:</span>
+                              <span className="font-medium text-black">
+                                ${priceCalculation.destinationTokenPrice.toFixed(6)}
+                              </span>
+                            </div>
+
+                            {/* Source Token Info */}
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600">Required Source Token:</span>
+                              <span className="font-medium text-black">
+                                {priceCalculation.sourceTokenAmount.toFixed(6)} {paymentForm.token}
+                              </span>
+                            </div>
+                            
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600">Source Token Price:</span>
+                              <span className="font-medium text-black">
+                                ${priceCalculation.sourceTokenPrice.toFixed(6)}
+                              </span>
+                            </div>
+
+                            {/* Conversion Rate */}
+                            <div className="flex justify-between items-center pt-2 border-t border-blue-200">
+                              <span className="text-sm font-medium text-gray-700">Conversion Rate:</span>
+                              <span className="font-bold text-blue-600">
+                                1 {receiptData.destination_token} = {priceCalculation.conversionRate.toFixed(6)} {paymentForm.token}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Reset Button */}
