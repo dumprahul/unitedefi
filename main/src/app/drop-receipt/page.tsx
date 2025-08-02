@@ -117,9 +117,22 @@ export default function DropReceiptPage() {
       const receipt = await getReceiptByEmojiCode(emojiCode);
       
       if (receipt) {
+        console.log("✅ Receipt Found:", {
+          emojiCode: emojiCode,
+          receipt: receipt,
+          description: receipt.description,
+          destinationChain: receipt.destination_chain,
+          destinationToken: receipt.destination_token,
+          destinationTokenAddress: receipt.destination_token_address,
+          amount: receipt.amount,
+          decimals: receipt.decimal,
+          destinationAddress: receipt.destination_address
+        });
+        
         setReceiptData(receipt);
         setIsReceiptFound(true);
       } else {
+        console.log("❌ No receipt found for emoji code:", emojiCode);
         setError("No receipt found with these emojis. Please check and try again.");
         setIsReceiptFound(false);
       }
@@ -137,6 +150,16 @@ export default function DropReceiptPage() {
       ...prev,
       [field]: value
     }));
+
+    // Log source chain selection
+    if (field === "chain") {
+      const selectedChain = chains.find(chain => chain.id.toString() === value);
+      console.log("🔗 Selected Source Chain:", {
+        chainId: value,
+        chainName: selectedChain?.name || "Unknown",
+        rpcUrl: selectedChain?.rpcUrl || ""
+      });
+    }
   };
 
   const handleTokenSelect = async (tokenAddress: string) => {
@@ -147,6 +170,14 @@ export default function DropReceiptPage() {
       const selectedToken = tokens.find(token => token.address === tokenAddress);
       
       if (selectedToken) {
+        console.log("🎯 Selected Source Token:", {
+          sourceChainId: paymentForm.chain,
+          sourceTokenName: selectedToken.name,
+          sourceTokenSymbol: selectedToken.symbol,
+          sourceTokenAddress: selectedToken.address,
+          sourceTokenDecimals: selectedToken.decimals
+        });
+
         setPaymentForm(prev => ({
           ...prev,
           token: selectedToken.symbol,
@@ -165,8 +196,72 @@ export default function DropReceiptPage() {
       return;
     }
     
+    if (!receiptData) {
+      alert("No receipt data available");
+      return;
+    }
+
+    // Get the selected chain details
+    const selectedChain = chains.find(chain => chain.id.toString() === paymentForm.chain);
+    
+    // Organize source and destination parameters
+    const sourceParams = {
+      chain: {
+        id: paymentForm.chain,
+        name: selectedChain?.name || "Unknown",
+        rpcUrl: selectedChain?.rpcUrl || ""
+      },
+      token: {
+        symbol: paymentForm.token,
+        address: paymentForm.tokenAddress,
+        name: paymentForm.tokenSymbol
+      }
+    };
+
+    const destinationParams = {
+      chain: {
+        name: receiptData.destination_chain,
+        // You might want to map chain names to IDs here
+        id: getChainIdByName(receiptData.destination_chain)
+      },
+      token: {
+        symbol: receiptData.destination_token,
+        address: receiptData.destination_token_address,
+        name: receiptData.destination_token
+      },
+      amount: {
+        raw: receiptData.amount,
+        readable: convertAmountToReadable(receiptData.amount, receiptData.decimal),
+        decimals: receiptData.decimal
+      },
+      description: receiptData.description,
+      destinationAddress: receiptData.destination_address
+    };
+
+    // Comprehensive console logging
+    console.log("=== EMOJI SWAP PARAMETERS ===");
+    console.log("📱 Receipt Data:", receiptData);
+    console.log("🔗 Source Parameters:", sourceParams);
+    console.log("🎯 Destination Parameters:", destinationParams);
+    console.log("💰 Amount Details:", {
+      raw: receiptData.amount,
+      readable: convertAmountToReadable(receiptData.amount, receiptData.decimal),
+      decimals: receiptData.decimal,
+      token: receiptData.destination_token
+    });
+    console.log("📝 Description:", receiptData.description);
+    console.log("👤 Destination Address:", receiptData.destination_address);
+    console.log("🎨 Emoji Code:", emojis.join(''));
+    console.log("=== END PARAMETERS ===");
+
     // Here you would implement the actual swap logic
     alert("EmoSwap functionality coming soon!");
+  };
+
+  // Helper function to get chain ID by name
+  const getChainIdByName = (chainName: string): string => {
+    const chain = chains.find(c => c.name.toLowerCase() === chainName.toLowerCase());
+    return chain?.id.toString() || "1"; // Default to Ethereum if not found
   };
 
   const handleReset = () => {
