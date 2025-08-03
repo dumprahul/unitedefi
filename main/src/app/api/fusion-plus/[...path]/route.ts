@@ -119,8 +119,27 @@ export async function POST(
       );
     }
 
-    const data = await response.json();
-    console.log('✅ Fusion+ API Response:', data);
+    // Check if response has content
+    const responseText = await response.text();
+    console.log('✅ Fusion+ API Response Text:', responseText);
+    
+    let data;
+    if (responseText.trim()) {
+      try {
+        data = JSON.parse(responseText);
+        console.log('✅ Fusion+ API Response Parsed:', data);
+      } catch (parseError) {
+        console.error('❌ Error parsing JSON response:', parseError);
+        console.error('Response text:', responseText);
+        return NextResponse.json(
+          { error: 'Invalid JSON response from Fusion+ API' },
+          { status: 500 }
+        );
+      }
+    } else {
+      console.log('⚠️ Empty response from Fusion+ API');
+      data = { success: true, message: 'Empty response - assuming success' };
+    }
     
     return NextResponse.json(data);
   } catch (error) {

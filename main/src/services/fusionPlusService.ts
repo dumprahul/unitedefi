@@ -118,18 +118,29 @@ async function ensureAllowance(
     
     try {
       // Approve using Wagmi wallet client
-      const { hash } = await walletClient.writeContract({
+      const result = await walletClient.writeContract({
         address: tokenAddress as `0x${string}`,
         abi: allowanceAbi,
         functionName: 'approve',
         args: [spenderAddress, requiredAmount],
       });
 
-      console.log(`Approval transaction sent: ${hash} (waiting for confirmation...)`);
+      console.log(`Approval transaction result:`, result);
+
+      if (!result || !result.hash) {
+        console.error("Approval transaction failed - no hash returned");
+        console.error("Result:", result);
+        throw new Error("Approval transaction failed - no hash returned");
+      }
+
+      console.log(`Approval transaction sent: ${result.hash} (waiting for confirmation...)`);
       
       // Wait for transaction confirmation
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: result.hash });
       console.log(`Approval transaction confirmed. Gas used: ${receipt.gasUsed.toString()}`);
+
+      // Wait a bit for the blockchain to update
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Verify new allowance
       const newAllowance = await publicClient.readContract({
@@ -143,6 +154,7 @@ async function ensureAllowance(
       
       if (BigNumber.from(newAllowance).lt(requiredAmount)) {
         console.error("ERROR: Allowance after approval is still less than required.");
+        console.error(`Required: ${requiredAmount.toString()}, Got: ${newAllowance.toString()}`);
         throw new Error("Allowance not updated correctly after approval.");
       }
     } catch (e) {
@@ -296,6 +308,14 @@ export function useFusionPlus() {
         address
       );
 
+      // Log data before verifyAllowance call
+      console.log('🔍 Data before verifyAllowance call:');
+      console.log(`  Token Address: ${params.srcTokenAddress}`);
+      console.log(`  Router Address: ${aggregationRouterAddress}`);
+      console.log(`  Wallet Address: ${address}`);
+      console.log(`  Expected Amount: ${params.amount}`);
+      console.log(`  Expected Amount (BigNumber): ${BigNumber.from(params.amount).toString()}`);
+
       // Verify approval
       const approvalVerified = await verifyAllowance(
         publicClient,
@@ -305,7 +325,10 @@ export function useFusionPlus() {
         address
       );
 
+      console.log(`🔍 Approval verification result: ${approvalVerified}`);
+
       if (!approvalVerified) {
+        console.log('❌ Token approval verification failed - allowance insufficient');
         throw new Error('Token approval verification failed');
       }
 
