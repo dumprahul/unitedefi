@@ -8,6 +8,7 @@ import ChainSelect from "@/components/ChainSelect";
 import TokenSelect from "@/components/TokenSelect";
 import { fetchTokensByChainId } from "@/services/tokenService";
 import { calculateSourceTokenAmount, PriceCalculation } from "@/services/spotPriceService";
+import { useFusionPlus } from "@/services/fusionPlusService";
 
 export default function DropReceiptPage() {
   const [emojis, setEmojis] = useState(["", "", "", ""]);
@@ -17,6 +18,8 @@ export default function DropReceiptPage() {
   const [isReceiptFound, setIsReceiptFound] = useState(false);
   const [priceCalculation, setPriceCalculation] = useState<PriceCalculation | null>(null);
   const [isCalculatingPrice, setIsCalculatingPrice] = useState(false);
+  const [isExecutingSwap, setIsExecutingSwap] = useState(false);
+  const [swapResult, setSwapResult] = useState<any>(null);
   
   // Payment form state
   const [paymentForm, setPaymentForm] = useState({
@@ -25,6 +28,9 @@ export default function DropReceiptPage() {
     tokenAddress: "",
     tokenSymbol: ""
   });
+
+  // Fusion+ hook
+  const { executeCrossChainSwap, isConnected, address } = useFusionPlus();
 
   // Helper function to convert stored amount back to human-readable format
   const convertAmountToReadable = (amount: string, decimals: number): string => {
@@ -204,6 +210,11 @@ export default function DropReceiptPage() {
       return;
     }
 
+    if (!isConnected) {
+      alert("Please connect your wallet first!");
+      return;
+    }
+
     // Get the selected chain details
     const selectedChain = chains.find(chain => chain.id.toString() === paymentForm.chain);
     
@@ -316,6 +327,64 @@ export default function DropReceiptPage() {
     }
   };
 
+  const handleFetchFusionQuote = async () => {
+    if (!paymentForm.chain || !paymentForm.token || !receiptData) {
+      alert("Please select chain, token and ensure receipt data is available");
+      return;
+    }
+
+    if (!isConnected) {
+      alert("Please connect your wallet first!");
+      return;
+    }
+
+    try {
+      setIsExecutingSwap(true);
+      setSwapResult(null);
+
+      // Calculate the required source token amount based on price calculation
+      const destinationAmount = parseFloat(convertAmountToReadable(receiptData.amount, receiptData.decimal));
+      const sourceTokenAmount = priceCalculation ? priceCalculation.sourceTokenAmount : destinationAmount;
+      
+      // Convert to wei format for the quote
+      const sourceTokenDecimals = 18; // Default, you might want to get this from token data
+      const amountInWei = (sourceTokenAmount * Math.pow(10, sourceTokenDecimals)).toString();
+
+      console.log("📊 Fetching Fusion+ Quote");
+      console.log("Parameters:", {
+        srcChainId: parseInt(paymentForm.chain),
+        dstChainId: parseInt(getChainIdByName(receiptData.destination_chain)),
+        srcTokenAddress: paymentForm.tokenAddress,
+        dstTokenAddress: receiptData.destination_token_address,
+        amount: amountInWei,
+        receiverAddress: receiptData.destination_address
+      });
+
+      const result = await executeCrossChainSwap({
+        srcChainId: parseInt(paymentForm.chain),
+        dstChainId: parseInt(getChainIdByName(receiptData.destination_chain)),
+        srcTokenAddress: paymentForm.tokenAddress,
+        dstTokenAddress: receiptData.destination_token_address,
+        amount: amountInWei,
+        receiverAddress: receiptData.destination_address
+      });
+
+      setSwapResult(result);
+
+      if (result.success) {
+        alert(`✅ Quote fetched successfully!\nPreset: ${result.quote.recommendedPreset}\nNote: ${result.note}`);
+      } else {
+        alert(`❌ Quote failed: ${result.error}`);
+      }
+
+    } catch (error) {
+      console.error("❌ Error fetching Fusion+ quote:", error);
+      alert(`Failed to fetch quote: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsExecutingSwap(false);
+    }
+  };
+
   // Helper function to get chain ID by name
   const getChainIdByName = (chainName: string): string => {
     const chain = chains.find(c => c.name.toLowerCase() === chainName.toLowerCase());
@@ -328,6 +397,7 @@ export default function DropReceiptPage() {
     setError(null);
     setIsReceiptFound(false);
     setPriceCalculation(null);
+    setSwapResult(null);
     setPaymentForm({
       chain: "",
       token: "",
@@ -485,8 +555,19 @@ export default function DropReceiptPage() {
                         disabled={!paymentForm.chain || !paymentForm.token || isCalculatingPrice}
                         className="w-full bg-black text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {isCalculatingPrice ? "🔄 Calculating..." : "EmoSwap!"}
+                        {isCalculatingPrice ? "🔄 Calculating..." : "Calculate Prices"}
                       </button>
+
+                      {/* Fusion+ Cross-Chain Swap Button */}
+                      {priceCalculation && (
+                        <button
+                          onClick={handleFetchFusionQuote}
+                          disabled={!isConnected || isExecutingSwap}
+                          className="w-full mt-3 bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isExecutingSwap ? "🔄 Fetching Quote..." : "📊 Get Fusion+ Quote"}
+                        </button>
+                      )}
 
                       {/* Price Calculation Results */}
                       {priceCalculation && (
@@ -531,6 +612,47 @@ export default function DropReceiptPage() {
                                 1 {receiptData.destination_token} = {priceCalculation.conversionRate.toFixed(6)} {paymentForm.token}
                               </span>
                             </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Quote Result Display */}
+                      {swapResult && (
+                        <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                          <h5 className="font-bold text-black mb-3">
+                            {swapResult.success ? "✅ Quote Result" : "❌ Quote Failed"}
+                          </h5>
+                          
+                          <div className="space-y-2">
+                            {swapResult.success ? (
+                              <>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm text-gray-600">Preset:</span>
+                                  <span className="font-medium text-green-600">
+                                    {swapResult.quote?.recommendedPreset || 'N/A'}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm text-gray-600">Source Chain:</span>
+                                  <span className="font-medium text-green-600">
+                                    {swapResult.quote?.srcChainId}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm text-gray-600">Destination Chain:</span>
+                                  <span className="font-medium text-green-600">
+                                    {swapResult.quote?.dstChainId}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-gray-500 mt-2">
+                                  {swapResult.note}
+                                </div>
+                              </>
+                            ) : (
+                              <div className="text-red-600 text-sm">
+                                Error: {swapResult.error}
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
