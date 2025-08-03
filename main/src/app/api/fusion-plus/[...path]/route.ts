@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function POST(request: NextRequest) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { path: string[] } }
+) {
   try {
-    const body = await request.json();
     const authKey = process.env.NEXT_PUBLIC_AUTH_KEY;
 
     if (!authKey) {
@@ -12,28 +14,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get the path from the request URL
-    const url = new URL(request.url);
-    const path = url.pathname.replace('/api/fusion-plus', '');
+    // Reconstruct the path from the params
+    const path = params.path.join('/');
     
     // Construct the Fusion+ API URL
     const baseUrl = 'https://api.1inch.dev/fusion-plus';
-    const apiUrl = path ? `${baseUrl}${path}` : baseUrl;
+    const apiUrl = `${baseUrl}/${path}`;
 
-    console.log('🔄 Fusion+ API Request:', {
-      apiUrl,
+    // Get query parameters
+    const url = new URL(request.url);
+    const searchParams = url.searchParams.toString();
+    const fullApiUrl = searchParams ? `${apiUrl}?${searchParams}` : apiUrl;
+
+    console.log('🔄 Fusion+ API GET Request:', {
+      fullApiUrl,
       path,
-      body
+      searchParams
     });
 
-    const response = await fetch(apiUrl, {
-      method: 'POST',
+    const response = await fetch(fullApiUrl, {
+      method: 'GET',
       headers: {
         'Authorization': `Bearer ${authKey}`,
-        'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -63,8 +67,12 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { path: string[] } }
+) {
   try {
+    const body = await request.json();
     const authKey = process.env.NEXT_PUBLIC_AUTH_KEY;
 
     if (!authKey) {
@@ -74,25 +82,27 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get the path from the request URL
-    const url = new URL(request.url);
-    const path = url.pathname.replace('/api/fusion-plus', '');
+    // Reconstruct the path from the params
+    const path = params.path.join('/');
     
     // Construct the Fusion+ API URL
     const baseUrl = 'https://api.1inch.dev/fusion-plus';
-    const apiUrl = path ? `${baseUrl}${path}` : baseUrl;
+    const apiUrl = `${baseUrl}/${path}`;
 
-    console.log('🔄 Fusion+ API GET Request:', {
+    console.log('🔄 Fusion+ API POST Request:', {
       apiUrl,
-      path
+      path,
+      body
     });
 
     const response = await fetch(apiUrl, {
-      method: 'GET',
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${authKey}`,
+        'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {

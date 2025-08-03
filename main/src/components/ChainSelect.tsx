@@ -8,9 +8,10 @@ interface ChainSelectProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
 }
 
-export default function ChainSelect({ value, onChange, placeholder = "Select a chain", className = "" }: ChainSelectProps) {
+export default function ChainSelect({ value, onChange, placeholder = "Select a chain", className = "", disabled = false }: ChainSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -31,8 +32,9 @@ export default function ChainSelect({ value, onChange, placeholder = "Select a c
     <div className={`relative ${className}`} ref={dropdownRef}>
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 bg-white text-left flex items-center justify-between"
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        disabled={disabled}
+        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 bg-white text-left flex items-center justify-between ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <div className="flex items-center space-x-3">
           {selectedChain ? (

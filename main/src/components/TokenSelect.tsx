@@ -9,9 +9,10 @@ interface TokenSelectProps {
   chainId?: number;
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
 }
 
-export default function TokenSelect({ value, onChange, chainId, placeholder = "Select a token", className = "" }: TokenSelectProps) {
+export default function TokenSelect({ value, onChange, chainId, placeholder = "Select a token", className = "", disabled = false }: TokenSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [tokens, setTokens] = useState<Token[]>([]);
   const [filteredTokens, setFilteredTokens] = useState<Token[]>([]);
@@ -73,8 +74,9 @@ export default function TokenSelect({ value, onChange, chainId, placeholder = "S
     <div className={`relative ${className}`} ref={dropdownRef}>
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 bg-white text-left flex items-center justify-between"
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        disabled={disabled}
+        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 bg-white text-left flex items-center justify-between ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <div className="flex items-center space-x-3">
           {selectedToken ? (

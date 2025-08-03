@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getReceiptByEmojiCode } from "@/services/receiptService";
 import { Receipt } from "@/lib/supabase";
 import { chains } from "@/config/chain";
@@ -20,6 +20,7 @@ export default function DropReceiptPage() {
   const [isCalculatingPrice, setIsCalculatingPrice] = useState(false);
   const [isExecutingSwap, setIsExecutingSwap] = useState(false);
   const [swapResult, setSwapResult] = useState<any>(null);
+  const [isMounted, setIsMounted] = useState(false);
   
   // Payment form state
   const [paymentForm, setPaymentForm] = useState({
@@ -30,7 +31,12 @@ export default function DropReceiptPage() {
   });
 
   // Fusion+ hook
-  const { executeCrossChainSwap, isConnected, address } = useFusionPlus();
+  const { executeCrossChainSwap, getQuote, executeFullSwap, isConnected, address } = useFusionPlus();
+
+  // Ensure we're on the client side
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Helper function to convert stored amount back to human-readable format
   const convertAmountToReadable = (amount: string, decimals: number): string => {
@@ -360,7 +366,7 @@ export default function DropReceiptPage() {
         receiverAddress: receiptData.destination_address
       });
 
-      const result = await executeCrossChainSwap({
+      const result = await getQuote({
         srcChainId: parseInt(paymentForm.chain),
         dstChainId: parseInt(getChainIdByName(receiptData.destination_chain)),
         srcTokenAddress: paymentForm.tokenAddress,
@@ -372,7 +378,7 @@ export default function DropReceiptPage() {
       setSwapResult(result);
 
       if (result.success) {
-        alert(`✅ Quote fetched successfully!\nPreset: ${result.quote.recommendedPreset}\nNote: ${result.note}`);
+        alert(`✅ Quote fetched successfully!\nPreset: ${result.quote?.recommendedPreset}`);
       } else {
         alert(`❌ Quote failed: ${result.error}`);
       }
@@ -380,6 +386,73 @@ export default function DropReceiptPage() {
     } catch (error) {
       console.error("❌ Error fetching Fusion+ quote:", error);
       alert(`Failed to fetch quote: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsExecutingSwap(false);
+    }
+  };
+
+  const handleExecuteFullSwap = async () => {
+    if (!paymentForm.chain || !paymentForm.token || !receiptData) {
+      alert("Please select chain, token and ensure receipt data is available");
+      return;
+    }
+
+    if (!isConnected) {
+      alert("Please connect your wallet first!");
+      return;
+    }
+
+    if (!priceCalculation) {
+      alert("Please calculate prices first by clicking 'Calculate Prices'");
+      return;
+    }
+
+    try {
+      setIsExecutingSwap(true);
+      setSwapResult(null);
+
+      // Calculate the required source token amount based on price calculation
+      const destinationAmount = parseFloat(convertAmountToReadable(receiptData.amount, receiptData.decimal));
+      const sourceTokenAmount = priceCalculation.sourceTokenAmount;
+      
+      // Convert to wei format for the swap
+      const sourceTokenDecimals = 18; // Default, you might want to get this from token data
+      const amountInWei = (sourceTokenAmount * Math.pow(10, sourceTokenDecimals)).toString();
+
+      console.log("🚀 Executing Full Fusion+ Swap");
+      console.log("Parameters:", {
+        srcChainId: parseInt(paymentForm.chain),
+        dstChainId: parseInt(getChainIdByName(receiptData.destination_chain)),
+        srcTokenAddress: paymentForm.tokenAddress,
+        dstTokenAddress: receiptData.destination_token_address,
+        amount: amountInWei,
+        receiverAddress: receiptData.destination_address
+      });
+
+      const result = await executeFullSwap({
+        srcChainId: parseInt(paymentForm.chain),
+        dstChainId: parseInt(getChainIdByName(receiptData.destination_chain)),
+        srcTokenAddress: paymentForm.tokenAddress,
+        dstTokenAddress: receiptData.destination_token_address,
+        amount: amountInWei,
+        receiverAddress: receiptData.destination_address
+      });
+
+      setSwapResult(result);
+
+      if (result.success) {
+        if (result.orderHash) {
+          alert(`✅ Real swap executed successfully!\nOrderHash: ${result.orderHash}\nStatus: ${result.status}`);
+        } else {
+          alert(`✅ Quote fetched successfully!\nPreset: ${result.quote?.recommendedPreset || 'N/A'}`);
+        }
+      } else {
+        alert(`❌ Swap failed: ${result.error}`);
+      }
+
+    } catch (error) {
+      console.error("❌ Error executing Fusion+ swap:", error);
+      alert(`Failed to execute swap: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsExecutingSwap(false);
     }
@@ -405,6 +478,18 @@ export default function DropReceiptPage() {
       tokenSymbol: ""
     });
   };
+
+  // Don't render until component is mounted to prevent hydration issues
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col pb-24">
@@ -532,6 +617,7 @@ export default function DropReceiptPage() {
                             value={paymentForm.chain}
                             onChange={(value) => handlePaymentFormChange("chain", value)}
                             placeholder="Select a chain"
+                            disabled={!isMounted}
                           />
                         </div>
 
@@ -545,6 +631,7 @@ export default function DropReceiptPage() {
                             onChange={handleTokenSelect}
                             chainId={paymentForm.chain ? parseInt(paymentForm.chain) : undefined}
                             placeholder="Select a token"
+                            disabled={!isMounted}
                           />
                         </div>
                       </div>
@@ -552,20 +639,31 @@ export default function DropReceiptPage() {
                       {/* EmoSwap Button */}
                       <button
                         onClick={handleEmoSwap}
-                        disabled={!paymentForm.chain || !paymentForm.token || isCalculatingPrice}
+                        disabled={!paymentForm.chain || !paymentForm.token || isCalculatingPrice || !isMounted}
                         className="w-full bg-black text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {isCalculatingPrice ? "🔄 Calculating..." : "Calculate Prices"}
                       </button>
 
                       {/* Fusion+ Cross-Chain Swap Button */}
-                      {priceCalculation && (
+                      {priceCalculation && isMounted && (
                         <button
                           onClick={handleFetchFusionQuote}
                           disabled={!isConnected || isExecutingSwap}
                           className="w-full mt-3 bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isExecutingSwap ? "🔄 Fetching Quote..." : "📊 Get Fusion+ Quote"}
+                        </button>
+                      )}
+
+                      {/* Execute Full Swap Button */}
+                      {priceCalculation && swapResult?.success && isMounted && (
+                        <button
+                          onClick={handleExecuteFullSwap}
+                          disabled={!isConnected || isExecutingSwap}
+                          className="w-full mt-3 bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isExecutingSwap ? "🔄 Executing Swap..." : "🚀 Execute Real Cross-Chain Swap"}
                         </button>
                       )}
 
@@ -620,12 +718,28 @@ export default function DropReceiptPage() {
                       {swapResult && (
                         <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
                           <h5 className="font-bold text-black mb-3">
-                            {swapResult.success ? "✅ Quote Result" : "❌ Quote Failed"}
+                            {swapResult.success ? (swapResult.orderHash ? "✅ Swap Executed" : "✅ Quote Result") : "❌ Failed"}
                           </h5>
                           
                           <div className="space-y-2">
                             {swapResult.success ? (
                               <>
+                                {swapResult.orderHash && (
+                                  <>
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm text-gray-600">Order Hash:</span>
+                                      <span className="font-medium text-green-600 font-mono text-xs">
+                                        {swapResult.orderHash}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm text-gray-600">Status:</span>
+                                      <span className="font-medium text-green-600">
+                                        {swapResult.status}
+                                      </span>
+                                    </div>
+                                  </>
+                                )}
                                 <div className="flex justify-between items-center">
                                   <span className="text-sm text-gray-600">Preset:</span>
                                   <span className="font-medium text-green-600">
@@ -644,9 +758,11 @@ export default function DropReceiptPage() {
                                     {swapResult.quote?.dstChainId}
                                   </span>
                                 </div>
-                                <div className="text-xs text-gray-500 mt-2">
-                                  {swapResult.note}
-                                </div>
+                                {swapResult.message && (
+                                  <div className="text-xs text-gray-500 mt-2">
+                                    {swapResult.message}
+                                  </div>
+                                )}
                               </>
                             ) : (
                               <div className="text-red-600 text-sm">
