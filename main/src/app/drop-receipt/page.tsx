@@ -27,7 +27,8 @@ export default function DropReceiptPage() {
     chain: "",
     token: "",
     tokenAddress: "",
-    tokenSymbol: ""
+    tokenSymbol: "",
+    tokenDecimals: 18 // Default to 18 decimals
   });
 
   // Fusion+ hook
@@ -49,6 +50,15 @@ export default function DropReceiptPage() {
     
     // Format to appropriate decimal places
     return readableAmount.toFixed(6).replace(/\.?0+$/, '');
+  };
+
+  // Helper function to convert human-readable amount to wei format
+  const convertToWei = (amount: number, decimals: number): string => {
+    // Round up to ensure sufficient amount and remove excessive decimals
+    // This prevents "invalid amount" errors from the API
+    const roundedAmount = Math.ceil(amount);
+    const weiAmount = roundedAmount * Math.pow(10, decimals);
+    return weiAmount.toString();
   };
 
   const handleEmojiChange = (index: number, value: string) => {
@@ -192,12 +202,18 @@ export default function DropReceiptPage() {
           sourceTokenAddress: selectedToken.address,
           sourceTokenDecimals: selectedToken.decimals
         });
+        console.log("🔢 Token Decimals:", {
+          token: selectedToken.symbol,
+          decimals: selectedToken.decimals,
+          example: `1 ${selectedToken.symbol} = ${Math.pow(10, selectedToken.decimals)} wei`
+        });
 
         setPaymentForm(prev => ({
           ...prev,
           token: selectedToken.symbol,
           tokenAddress: selectedToken.address,
-          tokenSymbol: selectedToken.symbol
+          tokenSymbol: selectedToken.symbol,
+          tokenDecimals: selectedToken.decimals
         }));
       }
     } catch (error) {
@@ -348,15 +364,21 @@ export default function DropReceiptPage() {
       setIsExecutingSwap(true);
       setSwapResult(null);
 
-      // Calculate the required source token amount based on price calculation
-      const destinationAmount = parseFloat(convertAmountToReadable(receiptData.amount, receiptData.decimal));
-      const sourceTokenAmount = priceCalculation ? priceCalculation.sourceTokenAmount : destinationAmount;
+      // Get the required source token amount from price calculation
+      const sourceTokenAmount = priceCalculation ? priceCalculation.sourceTokenAmount : 0;
       
-      // Convert to wei format for the quote
-      const sourceTokenDecimals = 18; // Default, you might want to get this from token data
-      const amountInWei = (sourceTokenAmount * Math.pow(10, sourceTokenDecimals)).toString();
+      // Convert to wei format using the helper function
+      const amountInWei = convertToWei(sourceTokenAmount, paymentForm.tokenDecimals);
 
       console.log("📊 Fetching Fusion+ Quote");
+      const roundedAmount = Math.ceil(sourceTokenAmount);
+      console.log("💰 Amount Conversion:", {
+        originalAmount: sourceTokenAmount,
+        roundedAmount: roundedAmount,
+        tokenDecimals: paymentForm.tokenDecimals,
+        amountInWei: amountInWei,
+        calculation: `${roundedAmount} * 10^${paymentForm.tokenDecimals} = ${amountInWei}`
+      });
       console.log("Parameters:", {
         srcChainId: parseInt(paymentForm.chain),
         dstChainId: parseInt(getChainIdByName(receiptData.destination_chain)),
@@ -411,15 +433,21 @@ export default function DropReceiptPage() {
       setIsExecutingSwap(true);
       setSwapResult(null);
 
-      // Calculate the required source token amount based on price calculation
-      const destinationAmount = parseFloat(convertAmountToReadable(receiptData.amount, receiptData.decimal));
+      // Get the required source token amount from price calculation
       const sourceTokenAmount = priceCalculation.sourceTokenAmount;
       
-      // Convert to wei format for the swap
-      const sourceTokenDecimals = 18; // Default, you might want to get this from token data
-      const amountInWei = (sourceTokenAmount * Math.pow(10, sourceTokenDecimals)).toString();
+      // Convert to wei format using the helper function
+      const amountInWei = convertToWei(sourceTokenAmount, paymentForm.tokenDecimals);
 
       console.log("🚀 Executing Full Fusion+ Swap");
+      const roundedAmount = Math.ceil(sourceTokenAmount);
+      console.log("💰 Amount Conversion:", {
+        originalAmount: sourceTokenAmount,
+        roundedAmount: roundedAmount,
+        tokenDecimals: paymentForm.tokenDecimals,
+        amountInWei: amountInWei,
+        calculation: `${roundedAmount} * 10^${paymentForm.tokenDecimals} = ${amountInWei}`
+      });
       console.log("Parameters:", {
         srcChainId: parseInt(paymentForm.chain),
         dstChainId: parseInt(getChainIdByName(receiptData.destination_chain)),
@@ -475,7 +503,8 @@ export default function DropReceiptPage() {
       chain: "",
       token: "",
       tokenAddress: "",
-      tokenSymbol: ""
+      tokenSymbol: "",
+      tokenDecimals: 18
     });
   };
 
