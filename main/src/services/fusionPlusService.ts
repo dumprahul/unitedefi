@@ -43,16 +43,16 @@ class WagmiBlockchainProvider {
 // Helper function to get the correct router address for each chain
 function getAggregationRouterAddress(chainId: number): string {
   const routerAddresses: { [chainId: number]: string } = {
-    1: '0x1111111254EEB25477B68fb85Ed929f73A960582', // Ethereum Mainnet
+    1: '0x111111125421cA6dc452d289314280a0f8842A65', // Ethereum Mainnet
     42161: '0x111111125421cA6dc452d289314280a0f8842A65', // Arbitrum
     10: '0x111111125421cA6dc452d289314280a0f8842A65', // Optimism
-    137: '0x1111111254EEB25477B68fb85Ed929f73A960582', // Polygon
-    56: '0x1111111254EEB25477B68fb85Ed929f73A960582', // BSC
-    43114: '0x1111111254EEB25477B68fb85Ed929f73A960582', // Avalanche
-    100: '0x1111111254EEB25477B68fb85Ed929f73A960582', // Gnosis
-    8453: '0x1111111254EEB25477B68fb85Ed929f73A960582', // Base
-    59144: '0x1111111254EEB25477B68fb85Ed929f73A960582', // Linea
-    324: '0x1111111254EEB25477B68fb85Ed929f73A960582', // zkSync Era
+    137: '0x111111125421cA6dc452d289314280a0f8842A65', // Polygon
+    56: '0x111111125421cA6dc452d289314280a0f8842A65', // BSC
+    43114: '0x111111125421cA6dc452d289314280a0f8842A65', // Avalanche
+    100: '0x111111125421cA6dc452d289314280a0f8842A65', // Gnosis
+    8453: '0x111111125421cA6dc452d289314280a0f8842A65', // Base
+    59144: '0x111111125421cA6dc452d289314280a0f8842A65', // Linea
+    324: '0x6fd4383cB451173D5f9304F041C7BCBf27d561fF', // zkSync Era
   };
 
   const routerAddress = routerAddresses[chainId];
