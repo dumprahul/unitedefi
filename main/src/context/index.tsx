@@ -3,7 +3,7 @@
 import { wagmiAdapter, projectId } from '../config'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createAppKit } from '@reown/appkit/react'
-import { mainnet, arbitrum } from '@reown/appkit/networks'
+import { mainnet, arbitrum,optimism,opBNB,polygon } from '@reown/appkit/networks'
 import React, { type ReactNode } from 'react'
 import { cookieToInitialState, WagmiProvider, type Config } from 'wagmi'
 
@@ -26,7 +26,7 @@ const metadata = {
 const modal = createAppKit({
   adapters: [wagmiAdapter],
   projectId,
-  networks: [mainnet, arbitrum],
+  networks: [mainnet, arbitrum, optimism,opBNB,polygon],
   defaultNetwork: mainnet,
   metadata: metadata,
   features: {
@@ -34,9 +34,7 @@ const modal = createAppKit({
   },
   themeVariables: {
     "--w3m-accent": "#000000",               // primary accent
-    // "--w3m-color-mix": "#00BB7F",           // color blending
-    // "--w3m-color-mix-strength": 40,
-    "--w3m-font-family": "sfProDisplayBold",  // use Bungee font
+    "--w3m-font-family": "sfProDisplayBold",  // 
     "--w3m-border-radius-master": "8px",
   }
 })
