@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { chainId: string } }
+  { params }: { params: Promise<{ chainId: string }> }
 ) {
   try {
-    const chainId = params.chainId;
+    const { chainId } = await params;
     const apiKey = process.env.INCH_API_KEY;
 
     if (!apiKey) {

@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { chainId: string; tokenAddress: string } }
+  { params }: { params: Promise<{ chainId: string; tokenAddress: string }> }
 ) {
   try {
-    const { chainId, tokenAddress } = params;
+    const { chainId, tokenAddress } = await params;
     const apiKey = process.env.INCH_API_KEY;
 
     if (!apiKey) {
@@ -36,7 +36,8 @@ export async function GET(
     
     return NextResponse.json(data);
   } catch (error) {
-    console.error(`Error fetching spot price for ${params.tokenAddress} on chain ${params.chainId}:`, error);
+    const { chainId, tokenAddress } = await params;
+    console.error(`Error fetching spot price for ${tokenAddress} on chain ${chainId}:`, error);
     return NextResponse.json(
       { error: 'Failed to fetch spot price' },
       { status: 500 }

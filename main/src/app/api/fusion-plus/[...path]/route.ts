@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
   try {
     const authKey = process.env.NEXT_PUBLIC_AUTH_KEY;
@@ -15,7 +15,8 @@ export async function GET(
     }
 
     // Reconstruct the path from the params
-    const path = params.path.join('/');
+    const resolvedParams = await params;
+    const path = resolvedParams.path.join('/');
     
     // Construct the Fusion+ API URL
     const baseUrl = 'https://api.1inch.dev/fusion-plus';
@@ -69,7 +70,7 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
   try {
     const body = await request.json();
@@ -83,7 +84,8 @@ export async function POST(
     }
 
     // Reconstruct the path from the params
-    const path = params.path.join('/');
+    const resolvedParams = await params;
+    const path = resolvedParams.path.join('/');
     
     // Construct the Fusion+ API URL
     const baseUrl = 'https://api.1inch.dev/fusion-plus';
