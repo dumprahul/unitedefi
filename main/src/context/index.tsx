@@ -34,8 +34,8 @@ const modal = createAppKit({
   },
   themeVariables: {
     "--w3m-accent": "#000000",               // primary accent
-    "--w3m-font-family": "sfProDisplayBold",  // 
-    "--w3m-border-radius-master": "8px",
+    "--w3m-font-family": "sfProDisplayBold",
+    "--w3m-border-radius-master": "3px",
   }
 })
 
