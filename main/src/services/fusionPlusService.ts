@@ -44,7 +44,7 @@ class WagmiBlockchainProvider {
 function getAggregationRouterAddress(chainId: number): string {
   const routerAddresses: { [chainId: number]: string } = {
     1: '0x1111111254EEB25477B68fb85Ed929f73A960582', // Ethereum Mainnet
-    42161: '0x111111125421ca6dc452d289314280a0f8842a65', // Arbitrum
+    42161: '0x111111125421cA6dc452d289314280a0f8842A65', // Arbitrum
     10: '0x111111125421cA6dc452d289314280a0f8842A65', // Optimism
     137: '0x1111111254EEB25477B68fb85Ed929f73A960582', // Polygon
     56: '0x1111111254EEB25477B68fb85Ed929f73A960582', // BSC
@@ -72,18 +72,6 @@ async function ensureAllowance(
   amount: string | BigNumber | bigint,
   walletAddress: string
 ) {
-  // Check if this is a native token (ETH, OP, etc.)
-  const nativeTokens = [
-    '0x0000000000000000000000000000000000000000', // ETH
-    '0x4200000000000000000000000000000000000042', // OP (Optimism)
-    '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE', // Generic native token
-  ];
-
-  if (nativeTokens.includes(tokenAddress.toLowerCase())) {
-    console.log(`✅ Native token detected: ${tokenAddress}. No approval needed.`);
-    return;
-  }
-
   console.log(`Token Address: ${tokenAddress}`);
   console.log(`Owner Address: ${walletAddress}`);
   console.log(`Spender Address: ${spenderAddress}`);
@@ -112,63 +100,57 @@ async function ensureAllowance(
     }
   ];
 
-  try {
-    // Check current allowance
-    const currentAllowance = await publicClient.readContract({
-      address: tokenAddress as `0x${string}`,
-      abi: allowanceAbi,
-      functionName: 'allowance',
-      args: [walletAddress, spenderAddress],
-    });
+  // Check current allowance
+  const currentAllowance = await publicClient.readContract({
+    address: tokenAddress as `0x${string}`,
+    abi: allowanceAbi,
+    functionName: 'allowance',
+    args: [walletAddress, spenderAddress],
+  });
 
-    console.log(`Current allowance: ${currentAllowance.toString()}`);
+  console.log(`Current allowance: ${currentAllowance.toString()}`);
 
-    const requiredAmount = BigNumber.from(amount);
+  const requiredAmount = BigNumber.from(amount);
 
-    if (BigNumber.from(currentAllowance).lt(requiredAmount)) {
-      console.log(`Required allowance: ${requiredAmount.toString()}. Current allowance is insufficient.`);
-      console.log(`Approving ${spenderAddress} to spend ${requiredAmount.toString()} tokens...`);
+  if (BigNumber.from(currentAllowance).lt(requiredAmount)) {
+    console.log(`Required allowance: ${requiredAmount.toString()}. Current allowance is insufficient.`);
+    console.log(`Approving ${spenderAddress} to spend ${requiredAmount.toString()} tokens...`);
+    
+    try {
+      // Approve using Wagmi wallet client
+      const { hash } = await walletClient.writeContract({
+        address: tokenAddress as `0x${string}`,
+        abi: allowanceAbi,
+        functionName: 'approve',
+        args: [spenderAddress, requiredAmount],
+      });
+
+      console.log(`Approval transaction sent: ${hash} (waiting for confirmation...)`);
       
-      try {
-        // Approve using Wagmi wallet client
-        const { hash } = await walletClient.writeContract({
-          address: tokenAddress as `0x${string}`,
-          abi: allowanceAbi,
-          functionName: 'approve',
-          args: [spenderAddress, requiredAmount],
-        });
+      // Wait for transaction confirmation
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      console.log(`Approval transaction confirmed. Gas used: ${receipt.gasUsed.toString()}`);
 
-        console.log(`Approval transaction sent: ${hash} (waiting for confirmation...)`);
-        
-        // Wait for transaction confirmation
-        const receipt = await publicClient.waitForTransactionReceipt({ hash });
-        console.log(`Approval transaction confirmed. Gas used: ${receipt.gasUsed.toString()}`);
+      // Verify new allowance
+      const newAllowance = await publicClient.readContract({
+        address: tokenAddress as `0x${string}`,
+        abi: allowanceAbi,
+        functionName: 'allowance',
+        args: [walletAddress, spenderAddress],
+      });
 
-        // Verify new allowance
-        const newAllowance = await publicClient.readContract({
-          address: tokenAddress as `0x${string}`,
-          abi: allowanceAbi,
-          functionName: 'allowance',
-          args: [walletAddress, spenderAddress],
-        });
-
-        console.log(`New allowance after approval: ${newAllowance.toString()}`);
-        
-        if (BigNumber.from(newAllowance).lt(requiredAmount)) {
-          console.error("ERROR: Allowance after approval is still less than required.");
-          throw new Error("Allowance not updated correctly after approval.");
-        }
-      } catch (e) {
-        console.error("Error during token approval transaction:", e);
-        throw e;
+      console.log(`New allowance after approval: ${newAllowance.toString()}`);
+      
+      if (BigNumber.from(newAllowance).lt(requiredAmount)) {
+        console.error("ERROR: Allowance after approval is still less than required.");
+        throw new Error("Allowance not updated correctly after approval.");
       }
-    } else {
-      console.log(`Sufficient allowance already set: ${currentAllowance.toString()} >= ${requiredAmount.toString()}`);
+    } catch (e) {
+      console.error("Error during token approval transaction:", e);
+      throw e;
     }
-  } catch (error) {
-    console.error("Error checking allowance:", error);
-    console.log("This might be a native token or non-standard token. Skipping approval.");
-    return;
+  } else {
+    console.log(`Sufficient allowance already set: ${currentAllowance.toString()} >= ${requiredAmount.toString()}`);
   }
 }
 
@@ -180,18 +162,6 @@ async function verifyAllowance(
   expectedAmount: string,
   walletAddress: string
 ) {
-  // Check if this is a native token (ETH, OP, etc.)
-  const nativeTokens = [
-    '0x0000000000000000000000000000000000000000', // ETH
-    '0x4200000000000000000000000000000000000042', // OP (Optimism)
-    '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE', // Generic native token
-  ];
-
-  if (nativeTokens.includes(tokenAddress.toLowerCase())) {
-    console.log(`✅ Native token detected: ${tokenAddress}. No allowance verification needed.`);
-    return true;
-  }
-
   const allowanceAbi = [
     {
       name: 'allowance',
@@ -205,27 +175,21 @@ async function verifyAllowance(
     }
   ];
 
-  try {
-    const currentAllowance = await publicClient.readContract({
-      address: tokenAddress as `0x${string}`,
-      abi: allowanceAbi,
-      functionName: 'allowance',
-      args: [walletAddress, spenderAddress],
-    });
+  const currentAllowance = await publicClient.readContract({
+    address: tokenAddress as `0x${string}`,
+    abi: allowanceAbi,
+    functionName: 'allowance',
+    args: [walletAddress, spenderAddress],
+  });
 
-    const expectedAmountBN = BigNumber.from(expectedAmount);
+  const expectedAmountBN = BigNumber.from(expectedAmount);
 
-    console.log(`Verifying allowance for ${spenderAddress}:`);
-    console.log(`  Expected: ${expectedAmountBN.toString()}`);
-    console.log(`  Current:  ${currentAllowance.toString()}`);
-    console.log(`  Sufficient: ${BigNumber.from(currentAllowance).gte(expectedAmountBN) ? '✅ YES' : '❌ NO'}`);
+  console.log(`Verifying allowance for ${spenderAddress}:`);
+  console.log(`  Expected: ${expectedAmountBN.toString()}`);
+  console.log(`  Current:  ${currentAllowance.toString()}`);
+  console.log(`  Sufficient: ${BigNumber.from(currentAllowance).gte(expectedAmountBN) ? '✅ YES' : '❌ NO'}`);
 
-    return BigNumber.from(currentAllowance).gte(expectedAmountBN);
-  } catch (error) {
-    console.error("Error verifying allowance:", error);
-    console.log("This might be a native token or non-standard token. Assuming sufficient allowance.");
-    return true;
-  }
+  return BigNumber.from(currentAllowance).gte(expectedAmountBN);
 }
 
 // Custom hook for Fusion+ functionality
