@@ -56,12 +56,22 @@ export default function DropReceiptPage() {
   };
 
   // Helper function to convert human-readable amount to wei format
-  const convertToWei = (amount: number, decimals: number): string => {
-    // Round up to ensure sufficient amount and remove excessive decimals
-    // This prevents "invalid amount" errors from the API
-    const roundedAmount = Math.ceil(amount);
-    const weiAmount = roundedAmount * Math.pow(10, decimals);
-    return weiAmount.toString();
+  const convertToWei = (amount: number | string, decimals: number): string => {
+    // Convert to number if it's a string
+    const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    // First multiply by token decimals to get the wei equivalent
+    const weiEquivalent = numericAmount * Math.pow(10, decimals);
+    // Then truncate to remove decimal part
+    const truncatedWeiAmount = Math.floor(weiEquivalent);
+    return truncatedWeiAmount.toString();
+  };
+
+  // Helper function to format amount based on token decimals
+  const formatAmountByDecimals = (amount: number, decimals: number): string => {
+    const divisor = Math.pow(10, decimals);
+    const formattedAmount = amount / divisor;
+    // Format to show appropriate decimal places based on token decimals
+    return formattedAmount.toFixed(decimals).replace(/\.?0+$/, '');
   };
 
   const handleEmojiChange = (index: number, value: string) => {
@@ -377,13 +387,17 @@ export default function DropReceiptPage() {
       const amountInWei = convertToWei(sourceTokenAmount, paymentForm.tokenDecimals);
 
       console.log("📊 Fetching Fusion+ Quote");
-      const roundedAmount = Math.ceil(sourceTokenAmount);
+      const formattedOriginalAmount = formatAmountByDecimals(sourceTokenAmount, paymentForm.tokenDecimals);
+      const weiEquivalent = sourceTokenAmount * Math.pow(10, paymentForm.tokenDecimals);
+      const truncatedWeiAmount = Math.floor(weiEquivalent);
       console.log("💰 Amount Conversion:", {
         originalAmount: sourceTokenAmount,
-        roundedAmount: roundedAmount,
+        formattedOriginalAmount: formattedOriginalAmount,
+        weiEquivalent: weiEquivalent,
+        truncatedWeiAmount: truncatedWeiAmount,
         tokenDecimals: paymentForm.tokenDecimals,
         amountInWei: amountInWei,
-        calculation: `${roundedAmount} * 10^${paymentForm.tokenDecimals} = ${amountInWei}`
+        calculation: `${sourceTokenAmount} * 10^${paymentForm.tokenDecimals} = ${weiEquivalent} → truncate → ${truncatedWeiAmount}`
       });
       console.log("Parameters:", {
         srcChainId: parseInt(paymentForm.chain),
@@ -446,13 +460,17 @@ export default function DropReceiptPage() {
       const amountInWei = convertToWei(sourceTokenAmount, paymentForm.tokenDecimals);
 
       console.log("🚀 Executing Full Fusion+ Swap");
-      const roundedAmount = Math.ceil(sourceTokenAmount);
+      const formattedOriginalAmount = formatAmountByDecimals(sourceTokenAmount, paymentForm.tokenDecimals);
+      const weiEquivalent = sourceTokenAmount * Math.pow(10, paymentForm.tokenDecimals);
+      const truncatedWeiAmount = Math.floor(weiEquivalent);
       console.log("💰 Amount Conversion:", {
         originalAmount: sourceTokenAmount,
-        roundedAmount: roundedAmount,
+        formattedOriginalAmount: formattedOriginalAmount,
+        weiEquivalent: weiEquivalent,
+        truncatedWeiAmount: truncatedWeiAmount,
         tokenDecimals: paymentForm.tokenDecimals,
         amountInWei: amountInWei,
-        calculation: `${roundedAmount} * 10^${paymentForm.tokenDecimals} = ${amountInWei}`
+        calculation: `${sourceTokenAmount} * 10^${paymentForm.tokenDecimals} = ${weiEquivalent} → truncate → ${truncatedWeiAmount}`
       });
       console.log("Parameters:", {
         srcChainId: parseInt(paymentForm.chain),
@@ -487,6 +505,95 @@ export default function DropReceiptPage() {
     } catch (error) {
       console.error("❌ Error executing Fusion+ swap:", error);
       alert(`Failed to execute swap: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsExecutingSwap(false);
+    }
+  };
+
+  const handleCombinedQuoteAndSwap = async () => {
+    if (!paymentForm.chain || !paymentForm.token || !receiptData) {
+      alert("Please select chain, token and ensure receipt data is available");
+      return;
+    }
+
+    if (!isConnected) {
+      alert("Please connect your wallet first!");
+      return;
+    }
+
+    if (!priceCalculation) {
+      alert("Please calculate prices first by clicking 'Calculate Prices'");
+      return;
+    }
+
+    try {
+      setIsExecutingSwap(true);
+      setSwapResult(null);
+
+      // Get the required source token amount from price calculation
+      const sourceTokenAmount = priceCalculation.sourceTokenAmount;
+      
+      // Convert to wei format using the helper function
+      const amountInWei = convertToWei(sourceTokenAmount, paymentForm.tokenDecimals);
+
+      console.log("📊 Step 1: Fetching Fusion+ Quote");
+      const roundedAmount = Math.ceil(sourceTokenAmount);
+      console.log("💰 Amount Conversion:", {
+        originalAmount: sourceTokenAmount,
+        roundedAmount: roundedAmount,
+        tokenDecimals: paymentForm.tokenDecimals,
+        amountInWei: amountInWei,
+        calculation: `${roundedAmount} * 10^${paymentForm.tokenDecimals} = ${amountInWei}`
+      });
+      console.log("Parameters:", {
+        srcChainId: parseInt(paymentForm.chain),
+        dstChainId: parseInt(getChainIdByName(receiptData.destination_chain)),
+        srcTokenAddress: paymentForm.tokenAddress,
+        dstTokenAddress: receiptData.destination_token_address,
+        amount: amountInWei,
+        receiverAddress: receiptData.destination_address
+      });
+
+      // Step 1: Get Quote
+      const quoteResult = await getQuote({
+        srcChainId: parseInt(paymentForm.chain),
+        dstChainId: parseInt(getChainIdByName(receiptData.destination_chain)),
+        srcTokenAddress: paymentForm.tokenAddress,
+        dstTokenAddress: receiptData.destination_token_address,
+        amount: amountInWei,
+        receiverAddress: receiptData.destination_address
+      });
+
+      if (!quoteResult.success) {
+        alert(`❌ Quote failed: ${quoteResult.error}`);
+        setSwapResult(quoteResult);
+        return;
+      }
+
+      console.log("✅ Quote successful, proceeding to execute swap...");
+      console.log("🚀 Step 2: Executing Cross-Chain Swap");
+
+      // Step 2: Execute Swap
+      const swapResult = await executeFullSwap({
+        srcChainId: parseInt(paymentForm.chain),
+        dstChainId: parseInt(getChainIdByName(receiptData.destination_chain)),
+        srcTokenAddress: paymentForm.tokenAddress,
+        dstTokenAddress: receiptData.destination_token_address,
+        amount: amountInWei,
+        receiverAddress: receiptData.destination_address
+      });
+
+      setSwapResult(swapResult);
+
+      if (swapResult.success) {
+        alert(`✅ Cross-chain swap executed successfully!\nOrder Hash: ${swapResult.orderHash}`);
+      } else {
+        alert(`❌ Swap failed: ${swapResult.error}`);
+      }
+
+    } catch (error) {
+      console.error("❌ Error in combined quote and swap:", error);
+      alert(`Failed to execute combined operation: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsExecutingSwap(false);
     }
@@ -749,16 +856,16 @@ export default function DropReceiptPage() {
                                </button>
                              </div>
 
-                             {/* Fusion+ Cross-Chain Swap Button - Only show after price calculation */}
+                             {/* Combined Quote and Swap Button */}
                              {isMounted && (
                                <motion.button
-                                 onClick={handleFetchFusionQuote}
-                                 disabled={!isConnected || isExecutingSwap}
-                                 className="w-full bg-gradient-to-r from-blue-400 to-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:from-blue-300 hover:to-blue-500 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed border-2 border-blue-600 shadow-md text-sm"
+                                 onClick={handleCombinedQuoteAndSwap}
+                                 disabled={!isConnected || isExecutingSwap || !priceCalculation}
+                                 className="w-full bg-gradient-to-r from-purple-500 to-purple-700 text-white font-bold py-3 px-4 rounded-lg hover:from-purple-400 hover:to-purple-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed border-2 border-purple-600 shadow-md text-sm"
                                  whileHover={{ scale: 1.02 }}
                                  whileTap={{ scale: 0.98 }}
                                >
-                                 {isExecutingSwap ? "🔄 Fetching Quote..." : "📊 Get Fusion+ Quote"}
+                                 {isExecutingSwap ? "🔄 Executing Quote & Swap..." : "🚀 Execute Cross-Chain Swap"}
                                </motion.button>
                              )}
                            </div>
@@ -766,18 +873,7 @@ export default function DropReceiptPage() {
                        )
                      )}
 
-                    {/* Execute Full Swap Button - Show when quote is successful */}
-                    {priceCalculation && swapResult?.success && isMounted && (
-                      <motion.button
-                        onClick={handleExecuteFullSwap}
-                        disabled={!isConnected || isExecutingSwap}
-                        className="w-full mt-3 bg-gradient-to-r from-green-400 to-green-600 text-white font-bold py-3 px-4 rounded-lg hover:from-green-300 hover:to-green-500 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed border-2 border-green-600 shadow-md text-sm"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        {isExecutingSwap ? "🔄 Executing Swap..." : "🚀 Execute Real Cross-Chain Swap"}
-                      </motion.button>
-                    )}
+                    
 
                     {/* Quote Result Display */}
                     {swapResult && (
