@@ -7,6 +7,7 @@ import ChainSelect from "@/components/ChainSelect";
 import TokenSelect from "@/components/TokenSelect";
 import { createReceipt } from "@/services/receiptService";
 import { fetchTokensByChainId, Token } from "@/services/tokenService";
+import { motion } from "motion/react";
 
 // Import emoji data (you'll need to install emoji.json package)
 const emojis = [
@@ -182,34 +183,85 @@ export default function CreateReceiptPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col pb-24">
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Full Background Image */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: "url('/main.jpg')",
+        }}
+      />
+      
+      {/* Overlay for better text readability */}
+      <div className="absolute inset-0 bg-black/30" />
+
       {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center p-4">
+      <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
         <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-12">
           
           {/* Left Section - Branding */}
           <div className="flex flex-col justify-center items-center lg:items-start text-center lg:text-left">
-            <div className="mb-8">
-              <h1 className="font-bold text-black text-5xl mb-4">EmojiSwap</h1>
-              <p className="text-xl text-gray-800 font-light max-w-md">
+            <motion.div 
+              className="mb-8"
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+            >
+              <h1 
+                className="text-2xl md:text-3xl lg:text-6xl mb-4 text-white font-bold"
+                style={{
+                  textShadow: "2px 2px 0px #000000, 4px 4px 0px #FF6B35",
+                  fontFamily: "'Comical Cartoon', cursive",
+                  WebkitTextStroke: "1px #000000",
+                }}
+              >
+                Create Receipt
+              </h1>
+              {/* <p 
+                className="text-lg md:text-xl text-white font-bold max-w-md"
+                style={{
+                  fontFamily: "'Comical Cartoon', cursive",
+                  textShadow: "2px 2px 0px #000000, 4px 4px 0px #FF6B35",
+                  WebkitTextStroke: "1px #000000",
+                }}
+              >
                 Create custom payment receipts for cross-chain transactions. 
                 Generate unique emoji-based payment links that work across multiple blockchains.
-              </p>
-            </div>
+              </p> */}
+            </motion.div>
           </div>
 
-          {/* Right Section - Modal */}
+          {/* Right Section - Form */}
           <div className="flex items-center justify-center">
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8 w-full max-w-lg">
-              <div className="text-center mb-8">
-                <h2 className="font-bold text-2xl mb-2 text-black">Create Receipt</h2>
-                <p className="text-gray-700">Fill in the details to generate your payment receipt</p>
+            <motion.div 
+              className="bg-white/95 backdrop-blur-lg rounded-2xl shadow-xl border-2 border-orange-400 p-6 w-full max-w-lg"
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+            >
+              <div className="text-center mb-6">
+                <h2 
+                  className="text-xl md:text-2xl mb-2 text-black font-bold"
+                >
+                  Just 4 fields, you get 4 emojis
+                </h2>
+                {/* <p 
+                  className="text-gray-700 font-bold"
+                  style={{
+                    fontFamily: "'Comical Cartoon', cursive",
+                    textShadow: "1px 1px 0px #000000",
+                  }}
+                >
+                  Fill in the details to generate your payment receipt
+                </p> */}
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Description */}
                 <div>
-                  <label className="block text-sm font-medium text-black mb-2">
+                  <label 
+                    className="block text-xl font-bold text-black mb-1"
+                  >
                     Description
                   </label>
                   <input
@@ -217,16 +269,18 @@ export default function CreateReceiptPage() {
                     value={formData.description}
                     onChange={(e) => handleInputChange("description", e.target.value)}
                     placeholder="What is this for?"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200"
+                    className="w-full px-3 py-2 border-2 border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200  text-l"
                     required
                   />
                 </div>
 
                 {/* Chain and Token Row */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   {/* Chain */}
                   <div>
-                    <label className="block text-sm font-medium text-black mb-2">
+                    <label 
+                      className="block text-xl font-bold text-black mb-1"
+                    >
                       Chain
                     </label>
                     <ChainSelect
@@ -238,7 +292,9 @@ export default function CreateReceiptPage() {
 
                   {/* Token */}
                   <div>
-                    <label className="block text-sm font-medium text-black mb-2">
+                    <label 
+                      className="block text-xl font-bold text-black mb-1"
+                    >
                       Token
                     </label>
                     <TokenSelect
@@ -252,7 +308,9 @@ export default function CreateReceiptPage() {
 
                 {/* Amount */}
                 <div>
-                  <label className="block text-sm font-medium text-black mb-2">
+                  <label 
+                    className="block text-xl  text-black mb-1"
+                  >
                     Amount
                   </label>
                   <input
@@ -262,79 +320,107 @@ export default function CreateReceiptPage() {
                     value={formData.amount}
                     onChange={(e) => handleInputChange("amount", e.target.value)}
                     placeholder="0.0"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200"
+                    className="w-full px-3 py-2 border-2 border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 font-bold text-sm"
                     required
                   />
                   {formData.tokenSymbol && (
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p 
+                      className="text-xs text-gray-600 mt-1 font-bold"
+                    >
                       Amount will be converted to {formData.tokenSymbol} with {formData.tokenDecimals} decimals
                     </p>
                   )}
                 </div>
 
                 {/* Submit Button */}
-                <button
+                <motion.button
                   type="submit"
                   disabled={isGenerating || !isConnected}
-                  className="w-full bg-black text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold py-3 px-4 rounded-lg hover:from-yellow-300 hover:to-orange-400 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed border-2 border-orange-600 shadow-md text-sm"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
                   {isGenerating ? "🔄 Generating..." : "Create Receipt"}
-                </button>
+                </motion.button>
               </form>
-            </div>
+            </motion.div>
           </div>
         </div>
       </div>
 
       {/* Success Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-white/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 p-8 max-w-sm w-full text-center">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50 p-6">
+          <motion.div 
+            className="bg-white/95 backdrop-blur-lg rounded-2xl shadow-xl border-2 border-orange-400 p-6 max-w-sm w-full text-center"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
+          >
             {/* Success Icon */}
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-green-500">
+              <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
             </div>
 
             {/* Success Message */}
-            <div className="text-gray-500 text-lg mb-2">Great!</div>
-            <h3 className="text-2xl font-bold text-black mb-2">Receipt Generated</h3>
-            <p className="text-gray-500 mb-6">Here are your unique emojis</p>
+            <div 
+              className="text-gray-600 mb-2 font-bold text-2xl"
+            >
+              Great!
+            </div>
+            <h3 
+              className="text-3xl font-bold text-black mb-2"
+            >
+              Receipt Generated
+            </h3>
+            <p 
+              className="text-gray-600 mb-4 font-bold text-xl"
+            >
+              Here are your unique emojis
+            </p>
 
             {/* Generated Emojis */}
-            <div className="flex justify-center space-x-3 mb-6">
+            <div className="flex justify-center space-x-2 mb-6">
               {generatedEmojis.map((emoji, index) => (
-                <div
+                <motion.div
                   key={index}
-                  className="w-16 h-16 bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-gray-100 rounded-2xl flex items-center justify-center text-3xl shadow-sm"
+                  className="w-12 h-12 bg-gradient-to-br from-yellow-100 to-orange-100 border-2 border-orange-400 rounded-xl flex items-center justify-center text-2xl shadow-md"
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ delay: index * 0.1, duration: 0.5 }}
                 >
                   {emoji}
-                </div>
+                </motion.div>
               ))}
             </div>
 
             {/* Copy Button */}
-            <button
+            <motion.button
               onClick={copyEmojis}
-              className="w-full mb-4 bg-gray-100 text-gray-700 py-3 px-6 rounded-xl font-medium hover:bg-gray-200 transition-colors flex items-center justify-center space-x-2"
+              className="w-full mb-3 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-bold hover:bg-gray-200 transition-colors flex items-center justify-center space-x-2 border-2 border-gray-400 shadow-md text-sm"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
               <span>{copied ? "Copied!" : "Copy Emojis"}</span>
-            </button>
+            </motion.button>
 
             {/* Close Button */}
-            <button
+            <motion.button
               onClick={closeModal}
-              className="w-full bg-black text-white py-3 px-6 rounded-xl font-medium hover:bg-gray-800 transition-colors"
+              className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-black py-2 px-4 rounded-lg font-bold hover:from-yellow-300 hover:to-orange-400 transition-colors border-2 border-orange-600 shadow-md text-sm"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               Done
-            </button>
-          </div>
+            </motion.button>
+          </motion.div>
         </div>
       )}
     </div>
